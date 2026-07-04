@@ -1,0 +1,251 @@
+{
+  "version": "1.0",
+  "description": "Xactimate code list — replace this file with your actual codes. Keep the same JSON structure.",
+  "codes": [
+    {
+      "code": "DRY WTR",
+      "description": "Drywall - water damaged, remove and replace",
+      "category": "Drywall",
+      "unit": "SF",
+      "keywords": ["drywall", "sheetrock", "gypsum", "water damage", "water stain", "wet wall", "ceiling water", "damp wall"]
+    },
+    {
+      "code": "DRY R&R",
+      "description": "Drywall - remove and replace, 1/2 inch",
+      "category": "Drywall",
+      "unit": "SF",
+      "keywords": ["drywall", "sheetrock", "gypsum board", "remove replace", "hole", "damage", "impact", "puncture"]
+    },
+    {
+      "code": "DRY TAPE",
+      "description": "Drywall - tape, float, and finish",
+      "category": "Drywall",
+      "unit": "SF",
+      "keywords": ["tape", "float", "finish", "drywall repair", "patch", "texture"]
+    },
+    {
+      "code": "FLR LAM",
+      "description": "Flooring - laminate, remove and replace",
+      "category": "Flooring",
+      "unit": "SF",
+      "keywords": ["laminate", "laminate flooring", "floating floor", "click floor", "wood look floor", "water damaged floor"]
+    },
+    {
+      "code": "FLR HWD",
+      "description": "Flooring - hardwood, remove and replace",
+      "category": "Flooring",
+      "unit": "SF",
+      "keywords": ["hardwood", "wood floor", "oak floor", "maple floor", "engineered wood", "solid wood flooring"]
+    },
+    {
+      "code": "FLR TILE",
+      "description": "Flooring - ceramic/porcelain tile, remove and replace",
+      "category": "Flooring",
+      "unit": "SF",
+      "keywords": ["tile", "ceramic", "porcelain", "floor tile", "broken tile", "cracked tile", "grout"]
+    },
+    {
+      "code": "FLR CARP",
+      "description": "Carpet - remove and replace, standard grade",
+      "category": "Flooring",
+      "unit": "SY",
+      "keywords": ["carpet", "carpeting", "wet carpet", "stained carpet", "mold carpet", "pad", "water carpet"]
+    },
+    {
+      "code": "FLR PAD",
+      "description": "Carpet pad - remove and replace",
+      "category": "Flooring",
+      "unit": "SY",
+      "keywords": ["carpet pad", "underlayment", "padding", "foam pad"]
+    },
+    {
+      "code": "RF SHNG",
+      "description": "Roofing - shingles, remove and replace, 3-tab",
+      "category": "Roofing",
+      "unit": "SQ",
+      "keywords": ["shingle", "shingles", "roof", "3-tab", "asphalt shingle", "missing shingles", "damaged shingles", "hail damage roof"]
+    },
+    {
+      "code": "RF ARCH",
+      "description": "Roofing - architectural shingles, remove and replace",
+      "category": "Roofing",
+      "unit": "SQ",
+      "keywords": ["architectural shingle", "dimensional shingle", "30-year shingle", "40-year shingle", "laminated shingle"]
+    },
+    {
+      "code": "RF FELT",
+      "description": "Roofing - felt/underlayment, remove and replace",
+      "category": "Roofing",
+      "unit": "SQ",
+      "keywords": ["felt", "underlayment", "roofing paper", "tar paper", "ice shield", "ice barrier"]
+    },
+    {
+      "code": "RF FLASH",
+      "description": "Roofing - flashing, step, replace",
+      "category": "Roofing",
+      "unit": "LF",
+      "keywords": ["flashing", "step flashing", "chimney flashing", "valley flashing", "counter flashing", "drip edge"]
+    },
+    {
+      "code": "INS BATT",
+      "description": "Insulation - batt, fiberglass, remove and replace",
+      "category": "Insulation",
+      "unit": "SF",
+      "keywords": ["insulation", "batt", "fiberglass insulation", "pink insulation", "blown insulation", "wet insulation", "attic insulation"]
+    },
+    {
+      "code": "INS BLW",
+      "description": "Insulation - blown in, cellulose, remove and replace",
+      "category": "Insulation",
+      "unit": "SF",
+      "keywords": ["blown insulation", "cellulose", "blown in", "loose fill"]
+    },
+    {
+      "code": "WND R&R",
+      "description": "Window - remove and replace, single hung, standard",
+      "category": "Windows & Doors",
+      "unit": "EA",
+      "keywords": ["window", "broken window", "cracked window", "shattered glass", "window frame", "single hung", "double hung"]
+    },
+    {
+      "code": "DR EXT",
+      "description": "Door - exterior, remove and replace, pre-hung",
+      "category": "Windows & Doors",
+      "unit": "EA",
+      "keywords": ["exterior door", "front door", "back door", "damaged door", "broken door", "pre-hung door"]
+    },
+    {
+      "code": "DR INT",
+      "description": "Door - interior, remove and replace, hollow core",
+      "category": "Windows & Doors",
+      "unit": "EA",
+      "keywords": ["interior door", "hollow core", "bedroom door", "bathroom door", "damaged interior door"]
+    },
+    {
+      "code": "CEIL R&R",
+      "description": "Ceiling - drywall, remove and replace",
+      "category": "Ceiling",
+      "unit": "SF",
+      "keywords": ["ceiling", "ceiling drywall", "ceiling damage", "water ceiling", "sagging ceiling", "collapsed ceiling"]
+    },
+    {
+      "code": "CEIL TXTR",
+      "description": "Ceiling - texture, apply",
+      "category": "Ceiling",
+      "unit": "SF",
+      "keywords": ["ceiling texture", "popcorn ceiling", "knockdown texture", "orange peel texture", "smooth ceiling"]
+    },
+    {
+      "code": "PNT WALL",
+      "description": "Paint - walls, 2 coats, standard",
+      "category": "Painting",
+      "unit": "SF",
+      "keywords": ["paint", "painting", "wall paint", "interior paint", "repaint", "smoke damage paint", "discolored walls"]
+    },
+    {
+      "code": "PNT CEIL",
+      "description": "Paint - ceiling, 2 coats",
+      "category": "Painting",
+      "unit": "SF",
+      "keywords": ["ceiling paint", "paint ceiling", "ceiling discoloration", "stained ceiling paint"]
+    },
+    {
+      "code": "PNT EXT",
+      "description": "Paint - exterior siding, 2 coats",
+      "category": "Painting",
+      "unit": "SF",
+      "keywords": ["exterior paint", "siding paint", "house paint", "exterior repaint", "faded paint"]
+    },
+    {
+      "code": "CAB KIT",
+      "description": "Cabinets - kitchen, remove and replace, standard grade",
+      "category": "Cabinets",
+      "unit": "LF",
+      "keywords": ["kitchen cabinets", "cabinet", "cabinetry", "lower cabinet", "upper cabinet", "cabinet damage", "swollen cabinet"]
+    },
+    {
+      "code": "CNTR LAM",
+      "description": "Countertop - laminate, remove and replace",
+      "category": "Cabinets",
+      "unit": "LF",
+      "keywords": ["countertop", "counter", "laminate counter", "formica", "damaged countertop"]
+    },
+    {
+      "code": "CNTR GRAN",
+      "description": "Countertop - granite, remove and replace",
+      "category": "Cabinets",
+      "unit": "SF",
+      "keywords": ["granite", "granite countertop", "stone counter", "cracked granite", "marble"]
+    },
+    {
+      "code": "PLB PIPE",
+      "description": "Plumbing - pipe repair, copper, per LF",
+      "category": "Plumbing",
+      "unit": "LF",
+      "keywords": ["pipe", "plumbing", "copper pipe", "burst pipe", "broken pipe", "leaking pipe", "water line"]
+    },
+    {
+      "code": "PLB FIXT",
+      "description": "Plumbing - fixture, standard, remove and replace",
+      "category": "Plumbing",
+      "unit": "EA",
+      "keywords": ["fixture", "faucet", "toilet", "sink", "tub", "plumbing fixture", "damaged fixture"]
+    },
+    {
+      "code": "HVAC RTN",
+      "description": "HVAC - return air duct, clean and treat",
+      "category": "HVAC",
+      "unit": "EA",
+      "keywords": ["hvac", "duct", "air duct", "return vent", "smoke damage hvac", "mold duct"]
+    },
+    {
+      "code": "STRC BM",
+      "description": "Structural - beam, replace",
+      "category": "Structural",
+      "unit": "LF",
+      "keywords": ["beam", "structural beam", "support beam", "damaged beam", "rotted beam", "floor joist"]
+    },
+    {
+      "code": "STRC PLY",
+      "description": "Structural - plywood sheathing, remove and replace",
+      "category": "Structural",
+      "unit": "SF",
+      "keywords": ["plywood", "sheathing", "subfloor", "structural panel", "osb", "damaged subfloor", "rotted subfloor"]
+    },
+    {
+      "code": "MOLD REM",
+      "description": "Mold remediation - remove, treat, and encapsulate",
+      "category": "Remediation",
+      "unit": "SF",
+      "keywords": ["mold", "mildew", "black mold", "mold damage", "mold remediation", "mold stain", "fungus", "microbial growth"]
+    },
+    {
+      "code": "DEMO GEN",
+      "description": "Demolition - general debris removal",
+      "category": "Demolition",
+      "unit": "HR",
+      "keywords": ["demolition", "demo", "debris", "tear out", "remove debris", "haul away", "cleanup"]
+    },
+    {
+      "code": "SID VNL",
+      "description": "Siding - vinyl, remove and replace",
+      "category": "Exterior",
+      "unit": "SF",
+      "keywords": ["siding", "vinyl siding", "exterior siding", "damaged siding", "hail damage siding", "cracked siding", "missing siding"]
+    },
+    {
+      "code": "SID HRD",
+      "description": "Siding - hardboard/fiber cement, remove and replace",
+      "category": "Exterior",
+      "unit": "SF",
+      "keywords": ["hardboard siding", "fiber cement", "hardie board", "cement board siding", "composite siding"]
+    },
+    {
+      "code": "GUT R&R",
+      "description": "Gutters - aluminum, remove and replace",
+      "category": "Exterior",
+      "unit": "LF",
+      "keywords": ["gutter", "gutters", "downspout", "damaged gutter", "dented gutter", "hail gutter", "aluminum gutter"]
+    }
+  ]
+}
