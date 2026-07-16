@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGenAI, flashModel } from '@/lib/gemini'
+import { generateWithFallback } from '@/lib/ai-fallback'
 
 const POLICY_CHAT_SYSTEM = `You are an expert insurance claims analyst and senior adjuster with deep knowledge of State Farm policies, Xactimate estimating, and claim investigation procedures. You analyze claims holistically — policy coverage, estimate validation, scope verification, and documentation requirements.
 
@@ -25,38 +25,30 @@ export async function POST(request: NextRequest) {
     // Keep only the last 4 messages (2 full turns) to prevent exponential token growth
     const recentHistory = (history || []).slice(-4)
 
-    const contents = [
-      {
-        role: 'user' as const,
-        parts: [{ text: `Here is the POLICY DOCUMENT for reference:\n\n${policyText}` }],
-      },
-      {
-        role: 'model' as const,
-        parts: [{ text: 'I have reviewed the policy document and will use it to answer your questions.' }],
-      },
-      ...recentHistory.map((h: any) => ({
-        role: h.role as 'user' | 'model',
-        parts: [{ text: h.content }],
-      })),
-      {
-        role: 'user' as const,
-        parts: [{ text: question }],
-      },
+    const transcript = recentHistory
+      .map((h: any) => `${h.role === 'model' ? 'Assistant' : 'User'}: ${h.content}`)
+      .join('\n\n')
+
+    // generateWithFallback takes one prompt string, so the policy document and
+    // prior turns are folded into it rather than sent as a Gemini message array.
+    const prompt = [
+      `Here is the POLICY DOCUMENT for reference:\n\n${policyText}`,
+      transcript,
+      `User: ${question}`,
     ]
+      .filter(Boolean)
+      .join('\n\n---\n\n')
 
-    const genai = getGenAI()
-    const response = await genai.models.generateContent({
-      model: flashModel,
-      contents,
-      config: {
-        systemInstruction: POLICY_CHAT_SYSTEM,
-      }
-    })
-
-    const answer = response.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    return NextResponse.json({ success: true, answer })
+    const { text, provider } = await generateWithFallback(prompt, POLICY_CHAT_SYSTEM)
+    return NextResponse.json({ success: true, answer: text, provider })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    const detail = err instanceof Error ? err.message : 'Unknown error'
+    console.error('policy-chat failed:', detail)
+
+    const friendly = detail.includes('All AI providers failed')
+      ? 'No AI provider is available right now. Check the server logs for details.'
+      : 'Something went wrong analyzing that policy. Check the server logs for details.'
+
+    return NextResponse.json({ error: friendly, detail }, { status: 500 })
   }
 }

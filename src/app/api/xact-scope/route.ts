@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGenAI, flashModel } from '@/lib/gemini'
+import { generateWithFallback } from '@/lib/ai-fallback'
 
 const XACTIMATE_SYSTEM = `You are an expert Xactimate estimator with comprehensive knowledge of all Xactimate category codes, item codes, and unit of measurement standards. When given a property damage photo, you identify the damaged material and suggest the correct Xactimate line items.
 
@@ -46,33 +46,29 @@ Analyze this property damage photo carefully. Return a JSON array of suggested X
 
 Return ONLY valid JSON array, no markdown, no explanation.`
 
-    const genai = getGenAI()
-    const response = await genai.models.generateContent({
-      model: flashModel,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: prompt },
-            { inlineData: { mimeType: image.type as 'image/jpeg' | 'image/png' | 'image/webp', data: b64 } },
-          ],
-        },
-      ],
-    })
-
-    const raw = response.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]'
+    const { text: raw, provider } = await generateWithFallback(prompt, undefined, [b64])
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 
     let items: unknown[] = []
     try {
       items = JSON.parse(cleaned)
     } catch {
-      return NextResponse.json({ error: 'Failed to parse AI response', raw }, { status: 500 })
+      console.error(`xact-scope: ${provider} returned unparseable JSON:`, raw.slice(0, 500))
+      return NextResponse.json(
+        { error: 'The AI response was not valid JSON. Check the server logs.', raw },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json({ success: true, items })
+    return NextResponse.json({ success: true, items, provider })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    const detail = err instanceof Error ? err.message : 'Unknown error'
+    console.error('xact-scope failed:', detail)
+
+    const friendly = detail.includes('All AI providers failed')
+      ? 'No AI provider is available right now. Check the server logs for details.'
+      : 'Something went wrong analyzing that photo. Check the server logs for details.'
+
+    return NextResponse.json({ error: friendly, detail }, { status: 500 })
   }
 }
