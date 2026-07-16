@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGenAI, flashModel } from '@/lib/gemini'
+import { generateWithFallback } from '@/lib/ai-fallback'
 import { XACTIMATE_CODES } from '@/data/xactimate-codes'
 import { EXTRACTED_XACTIMATE_CODES } from '@/data/extracted-xactimate-codes'
 
@@ -48,35 +48,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Question is required' }, { status: 400 })
     }
 
-    const contents = [
-      {
-        role: 'user' as const,
-        parts: [{ text: SYSTEM_PROMPT }],
-      },
-      {
-        role: 'model' as const,
-        parts: [{ text: 'Understood. I am ready to assist with Xactimate codes, scoping questions, coverage interpretations, and claims estimating guidance. What do you need?' }],
-      },
-      ...(history ?? []).map((h) => ({
-        role: h.role as 'user' | 'model',
-        parts: [{ text: h.content }],
-      })),
-      {
-        role: 'user' as const,
-        parts: [{ text: question }],
-      },
-    ]
+    // generateWithFallback takes a single prompt, so prior turns are flattened
+    // into it rather than passed as a provider-specific message array.
+    const transcript = (history ?? [])
+      .map((h) => `${h.role === 'model' ? 'Assistant' : 'User'}: ${h.content}`)
+      .join('\n\n')
 
-    const genai = getGenAI()
-    const response = await genai.models.generateContent({
-      model: flashModel,
-      contents,
-    })
+    const prompt = transcript ? `${transcript}\n\nUser: ${question}` : question
 
-    const answer = response.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    return NextResponse.json({ success: true, answer })
+    const { text, provider } = await generateWithFallback(prompt, SYSTEM_PROMPT)
+    return NextResponse.json({ success: true, answer: text, provider })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    // The provider errors are long JSON blobs that used to render verbatim in
+    // the chat. Keep the detail in the logs and hand the UI a readable line.
+    const detail = err instanceof Error ? err.message : 'Unknown error'
+    console.error('code-reference failed:', detail)
+
+    const friendly = detail.includes('All AI providers failed')
+      ? 'No AI provider is available right now. Gemini may be over its daily free-tier limit, and the other providers are unavailable. Check the server logs for details.'
+      : 'Something went wrong answering that. Check the server logs for details.'
+
+    return NextResponse.json({ error: friendly, detail }, { status: 500 })
   }
 }
