@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 120 // seconds — image encoding + Gemini can be slow
-import { getGenAI, flashModel } from '@/lib/gemini'
-import { getGrok, grokModel } from '@/lib/grok'
+import { generateWithFallback } from '@/lib/ai-fallback'
 import { scrubPii } from '@/utils/sanitizer'
 
 export async function POST(request: NextRequest) {
@@ -89,69 +88,19 @@ Internal claim file note documenting the estimate review, suitable for direct en
     let provider = 'gemini'
 
     try {
-      console.log(`Attempting reconciliation: ${filesA.length} vs ${filesB.length} pages with Gemini...`)
-      const genai = getGenAI()
-      const response = await genai.models.generateContent({
-        model: flashModel,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: systemPrompt + '\n\n' + userPrompt },
-              ...partsA,
-              ...partsB,
-            ],
-          },
-        ],
-      })
-      text = response.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-      console.log('Gemini reconciliation successful!')
-    } catch (geminiErr: any) {
-      console.warn('Gemini reconciliation failed or rate-limited:', geminiErr.message)
-      console.log('Attempting auto-fallback to Grok...')
+      console.log(`Attempting reconciliation: ${filesA.length} vs ${filesB.length} pages...`)
+      
+      const allFiles = [...filesA, ...filesB]
+      const base64Images = await Promise.all(
+        allFiles.map(async (f) => await toBase64(f))
+      )
 
-      try {
-        const grok = getGrok()
-
-        const toGrokPart = async (f: File) => {
-          const data = await toBase64(f)
-          return {
-            type: 'image_url' as const,
-            image_url: {
-              url: `data:${(f.type as any) || 'image/jpeg'};base64,${data}`,
-              detail: 'high' as const,
-            },
-          }
-        }
-
-        const grokPartsA = await Promise.all(filesA.map(toGrokPart))
-        const grokPartsB = await Promise.all(filesB.map(toGrokPart))
-
-        const message = await grok.chat.completions.create({
-          model: grokModel,
-          max_tokens: 4000,
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt,
-            },
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: userPrompt },
-                ...grokPartsA,
-                ...grokPartsB,
-              ],
-            },
-          ],
-        })
-        text = message.choices[0]?.message?.content ?? ''
-        provider = 'grok'
-        console.log('Grok fallback successful!')
-      } catch (grokErr: any) {
-        console.error('Grok fallback failed as well:', grokErr.message)
-        throw new Error(`Both Gemini and Grok reconciliation attempts failed. Gemini error: ${geminiErr.message}. Grok error: ${grokErr.message}`)
-      }
+      const response = await generateWithFallback(userPrompt, systemPrompt, base64Images)
+      text = response.text
+      provider = response.provider
+      console.log(`Reconciliation successful via ${provider}!`)
+    } catch (err: any) {
+      throw new Error(err.message)
     }
 
     return NextResponse.json({ success: true, result: text, provider })

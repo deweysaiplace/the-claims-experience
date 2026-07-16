@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGenAI, flashModel } from '@/lib/gemini'
-import { getGrok, grokModel } from '@/lib/grok'
+import { generateWithFallback } from '@/lib/ai-fallback'
 import { XACTIMATE_CODES } from '@/data/xactimate-codes'
 
 const FIELD_SCOPE_PROMPT = `You are an elite property insurance field adjuster AI assistant. You are analyzing inspection photos and field notes from a property damage claim.
@@ -69,77 +68,25 @@ export async function POST(request: NextRequest) {
 
     const fullPrompt = `${FIELD_SCOPE_PROMPT}${xactCodes}\n\nCLAIM CONTEXT:\n${contextLines}`
 
-    // Convert photos to base64
-    const photoParts = await Promise.all(
-      photos.map(async (photo) => {
-        const bytes = await photo.arrayBuffer()
-        const b64 = Buffer.from(bytes).toString('base64')
-        return {
-          inlineData: {
-            mimeType: photo.type as 'image/jpeg' | 'image/png' | 'image/webp',
-            data: b64,
-          },
-        }
-      })
-    )
-
     let result = ''
     let provider = 'gemini'
 
     try {
-      console.log(`Field Scope: Analyzing ${photos.length} photos + transcript with Gemini...`)
-      const genai = getGenAI()
-      const response = await genai.models.generateContent({
-        model: flashModel,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: fullPrompt },
-              ...photoParts,
-            ],
-          },
-        ],
-      })
-      result = response.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-      console.log('Field Scope: Gemini analysis successful!')
-    } catch (geminiErr: any) {
-      console.warn('Field Scope: Gemini failed, falling back to Grok...', geminiErr.message)
-
-      try {
-        const grok = getGrok()
-        const imageContents: any[] = []
-        for (const photo of photos.slice(0, 20)) {
+      console.log(`Field Scope: Analyzing ${photos.length} photos + transcript...`)
+      
+      const base64Images = await Promise.all(
+        photos.map(async (photo) => {
           const bytes = await photo.arrayBuffer()
-          const b64 = Buffer.from(bytes).toString('base64')
-          imageContents.push({
-            type: 'image_url' as const,
-            image_url: {
-              url: `data:${(photo.type as any) || 'image/jpeg'};base64,${b64}`,
-              detail: 'high' as const,
-            },
-          })
-        }
-
-        const message = await grok.chat.completions.create({
-          model: grokModel,
-          max_tokens: 4000,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: fullPrompt },
-                ...imageContents,
-              ],
-            },
-          ],
+          return Buffer.from(bytes).toString('base64')
         })
-        result = message.choices[0]?.message?.content ?? ''
-        provider = 'grok'
-        console.log('Field Scope: Grok fallback successful!')
-      } catch (grokErr: any) {
-        throw new Error(`Both AI providers failed. Gemini: ${geminiErr.message}. Grok: ${grokErr.message}`)
-      }
+      )
+
+      const response = await generateWithFallback(fullPrompt, undefined, base64Images)
+      result = response.text
+      provider = response.provider
+      console.log(`Field Scope: Analysis successful via ${provider}!`)
+    } catch (err: any) {
+      throw new Error(err.message)
     }
 
     return NextResponse.json({ success: true, result, provider })

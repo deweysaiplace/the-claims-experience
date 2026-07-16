@@ -194,6 +194,33 @@ export default function FieldScopePage() {
     }
   }
 
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const handleSavePortal = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          claimRef,
+          address,
+          adjusterName,
+          content: result,
+          type: 'field-scope'
+        })
+      })
+      if (!res.ok) throw new Error('Save failed')
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setError('Failed to save report to portal')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-5">
       {/* Header */}
@@ -365,14 +392,19 @@ export default function FieldScopePage() {
                     Scope Results
                     {provider && <span className="ml-2 text-xs text-slate-500 font-normal">via {provider}</span>}
                   </CardTitle>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1.5 flex-wrap justify-end">
+                    <button onClick={handleSavePortal} disabled={saving}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-medium transition-colors">
+                      {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                      {saved ? 'Saved!' : 'Save'}
+                    </button>
                     <button onClick={handleCopy}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">
                       {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
                       {copied ? 'Copied' : 'Copy'}
                     </button>
                     <button onClick={handleEmail} disabled={emailSending}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium">
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium">
                       {emailSending ? <Loader2 className="w-3 h-3 animate-spin" /> : emailSent ? <Check className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
                       {emailSent ? 'Sent!' : 'Email'}
                     </button>
@@ -380,7 +412,7 @@ export default function FieldScopePage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto">
-                <div className="prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
+                <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
                   <ReactMarkdown>{result}</ReactMarkdown>
                 </div>
               </CardContent>

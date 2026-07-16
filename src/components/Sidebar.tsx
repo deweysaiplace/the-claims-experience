@@ -16,10 +16,12 @@ import {
   LogOut,
   Crosshair,
   Bug,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
+  { href: '/portal', label: 'Reports Portal', icon: FileText, description: 'View saved reports' },
   { href: '/field-scope', label: 'Field Scope', icon: Crosshair, description: 'Photos + voice → scope' },
   { href: '/reconciler', label: 'Estimate Reconciler', icon: GitCompare, description: 'Compare estimates' },
   { href: '/xact-scope', label: 'Xact Code Finder', icon: Camera, description: 'Photos + voice → codes' },
