@@ -9,4 +9,5 @@ export function getGrok(): OpenAI {
   })
 }
 
-export const grokModel = 'grok-2-vision'
+// 'grok-2-vision' does not exist. Confirmed live on this key: grok-4.5 (text + vision).
+export const grokModel = 'grok-4.5'
