@@ -43,5 +43,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# one-off setup scripts that hold a Supabase PAT inline — never commit
+execute-sql.js
+setup-reports-table.js
+
 .vercel
 .env*
