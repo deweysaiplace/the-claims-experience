@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+
+// The reports table has RLS enabled with no policy for the public anon key, so
+// writes must go through the service role. This route is server-only and gated
+// by middleware, so the key never reaches the browser.
+const NOT_CONFIGURED = {
+  error: 'SUPABASE_SERVICE_ROLE_KEY is not configured on this deployment',
+}
 
 export async function GET() {
+  const supabase = getSupabaseAdmin()
+  if (!supabase) return NextResponse.json(NOT_CONFIGURED, { status: 500 })
+
   try {
     const { data, error } = await supabase
       .from('reports')
@@ -16,6 +26,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseAdmin()
+  if (!supabase) return NextResponse.json(NOT_CONFIGURED, { status: 500 })
+
   try {
     const body = await request.json()
     const { claimRef, address, adjusterName, content, type } = body

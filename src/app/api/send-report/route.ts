@@ -9,6 +9,26 @@ export async function POST(request: NextRequest) {
       claimRef?: string
     }
 
+    const recipients = [
+      process.env.REPORT_EMAIL_WORK,
+      process.env.REPORT_EMAIL_PERSONAL,
+    ].filter(Boolean).join(', ')
+
+    // Name the missing piece explicitly. Without this, unset credentials surface
+    // as an opaque nodemailer auth error that reads like a Gmail outage.
+    const missing = [
+      !process.env.GMAIL_USER && 'GMAIL_USER',
+      !process.env.GMAIL_APP_PASSWORD && 'GMAIL_APP_PASSWORD',
+      !recipients && 'REPORT_EMAIL_WORK or REPORT_EMAIL_PERSONAL',
+    ].filter(Boolean)
+
+    if (missing.length > 0) {
+      return NextResponse.json(
+        { error: `Email is not configured on this deployment. Missing: ${missing.join(', ')}` },
+        { status: 500 }
+      )
+    }
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -16,11 +36,6 @@ export async function POST(request: NextRequest) {
         pass: process.env.GMAIL_APP_PASSWORD,
       },
     })
-
-    const recipients = [
-      process.env.REPORT_EMAIL_WORK,
-      process.env.REPORT_EMAIL_PERSONAL,
-    ].filter(Boolean).join(', ')
 
     const emailSubject = subject || `Claims Experience Report${claimRef ? ` — ${claimRef}` : ''}`
 
