@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
+import { compressImages } from '@/lib/compress-image'
 
 
 
@@ -57,7 +58,10 @@ export default function FieldScopePage() {
   // UI
   const [contextOpen, setContextOpen] = useState(true)
 
-  const previousTranscriptRef = useRef('')
+  // Everything finalised so far, across restarts. Only ever appended to — see
+  // onresult. Rebuilding this from event.results each time double-counts once
+  // recognition restarts.
+  const finalTextRef = useRef('')
   // The browser ends recognition after a few seconds of silence and does not
   // expose that timer. This tracks whether the user actually pressed stop, so
   // onend can restart and a thinking pause doesn't end the recording.
@@ -78,21 +82,25 @@ export default function FieldScopePage() {
     recognition.lang = 'en-US'
 
     recognition.onresult = (event: any) => {
-      let final = ''
       let interim = ''
-      for (let i = 0; i < event.results.length; i++) {
+      // Start at resultIndex — anything before it was appended on an earlier
+      // fire. Looping from 0 re-adds finalised text on every event.
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          final += event.results[i][0].transcript + ' '
+          const phrase = event.results[i][0].transcript.trim()
+          if (!phrase) continue
+          // A restart can re-deliver the phrase that ended the previous session,
+          // and a late onresult can arrive after onend. Both re-append text we
+          // already have. Skip anything already sitting at the tail.
+          if (finalTextRef.current.trimEnd().endsWith(phrase)) continue
+          finalTextRef.current += phrase + ' '
         } else {
           interim += event.results[i][0].transcript
         }
       }
-      
-      const prev = previousTranscriptRef.current ? previousTranscriptRef.current.trim() + '\n' : ''
-      const newFullText = prev + final
-      
-      transcriptRef.current = newFullText
-      setTranscript(newFullText + (interim ? ` [${interim}]` : ''))
+
+      transcriptRef.current = finalTextRef.current.trim()
+      setTranscript(transcriptRef.current + (interim ? ` [${interim}]` : ''))
     }
     recognition.onerror = (e: any) => {
       // A pause raises 'no-speech'. Ignore it — onend restarts us.
@@ -104,10 +112,8 @@ export default function FieldScopePage() {
     }
     recognition.onend = () => {
       if (shouldListenRef.current) {
-        // Browser stopped on silence, not the user. onresult rebuilds from
-        // previousTranscriptRef, so carry what we have forward or the next
-        // segment overwrites it.
-        previousTranscriptRef.current = transcriptRef.current
+        // Browser stopped on silence, not the user. finalTextRef already holds
+        // everything said so far, so just resume — nothing to carry over.
         try {
           recognition.start()
           return
@@ -128,7 +134,9 @@ export default function FieldScopePage() {
       recognitionRef.current.stop()
     } else {
       setError('')
-      previousTranscriptRef.current = transcript // Save whatever is currently typed
+      // Seed with whatever is already in the box (typed, or from an earlier
+      // recording) so new speech appends instead of replacing it.
+      finalTextRef.current = transcript.trim() ? transcript.trim() + ' ' : ''
       shouldListenRef.current = true
       recognitionRef.current.start()
       setIsRecording(true)
@@ -167,18 +175,36 @@ export default function FieldScopePage() {
     setError('')
     setResult('')
 
-    const form = new FormData()
-    photos.forEach((p) => form.append('photos', p))
-    form.append('transcript', transcriptRef.current || transcript)
-    form.append('claimRef', claimRef)
-    form.append('address', address)
-    form.append('adjusterName', adjusterName)
-    form.append('causeOfLoss', causeOfLoss)
-
     try {
+      // Raw phone photos exceed Vercel's ~4.5MB body limit within two or three
+      // shots. Shrink before sending.
+      const prepared = await compressImages(photos)
+
+      const form = new FormData()
+      prepared.forEach((p) => form.append('photos', p))
+      form.append('transcript', transcriptRef.current || transcript)
+      form.append('claimRef', claimRef)
+      form.append('address', address)
+      form.append('adjusterName', adjusterName)
+      form.append('causeOfLoss', causeOfLoss)
+
       const res = await fetch('/api/field-scope', { method: 'POST', body: form })
+
+      // Not every failure is JSON — a 413 from the platform is plain text, and
+      // res.json() on it throws "Unexpected token 'R'" instead of saying so.
+      if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error('Those photos are too large to upload. Try fewer photos at once.')
+        }
+        const body = await res.text()
+        try {
+          throw new Error(JSON.parse(body).error ?? 'Analysis failed')
+        } catch {
+          throw new Error(body.slice(0, 120) || `Request failed (${res.status})`)
+        }
+      }
+
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
       setResult(data.result)
       setProvider(data.provider)
     } catch (err: unknown) {
@@ -333,11 +359,13 @@ export default function FieldScopePage() {
                 {/* CAMERA — implicit label, input nested inside */}
                 <label className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm cursor-pointer transition-colors select-none">
                   <Camera className="w-4 h-4" /> Take Photo
+                  {/* No `multiple`: Chrome on Android ignores `capture` when it
+                      is present and opens the file picker instead of the camera.
+                      The Upload button next to this handles multi-select. */}
                   <input
                     type="file"
                     accept="image/*"
                     capture="environment"
-                    multiple
                     className="hidden"
                     onChange={onCameraCapture}
                   />

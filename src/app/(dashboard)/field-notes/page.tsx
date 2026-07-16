@@ -88,13 +88,16 @@ export default function FieldNotesPage() {
           currentInterim += event.results[i][0].transcript
         }
       }
-      
-      if (currentFinal) {
+
+      if (currentFinal.trim()) {
+        const phrase = currentFinal.trim()
         setLocations(prev => prev.map(loc => {
-          if (loc.id === activeLocRef.current) {
-            return { ...loc, transcript: (loc.transcript + ' ' + currentFinal).trim() }
-          }
-          return loc
+          if (loc.id !== activeLocRef.current) return loc
+          // A restart can re-deliver the phrase that ended the previous session,
+          // and a late onresult can arrive after onend. Both would re-append text
+          // we already have. Skip anything already sitting at the tail.
+          if (loc.transcript.trimEnd().endsWith(phrase)) return loc
+          return { ...loc, transcript: (loc.transcript + ' ' + phrase).trim() }
         }))
       }
       
