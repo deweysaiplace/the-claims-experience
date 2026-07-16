@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   GitCompare,
   Camera,
-  Video,
   BookOpen,
   Mic,
   MessageCircle,
@@ -15,7 +14,6 @@ import {
   X,
   LogOut,
   Crosshair,
-  Bug,
   FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -26,10 +24,8 @@ const NAV_ITEMS = [
   { href: '/reconciler', label: 'Estimate Reconciler', icon: GitCompare, description: 'Compare estimates' },
   { href: '/xact-scope', label: 'Xact Code Finder', icon: Camera, description: 'Photos + voice → codes' },
   { href: '/field-notes', label: 'Field Narratives', icon: Mic, description: 'Voice → file note' },
-  { href: '/site-walkthroughs', label: 'Site Walkthroughs', icon: Video, description: 'Video inspection' },
   { href: '/policy-chat', label: 'Policy Chat', icon: MessageCircle, description: 'Policy Q&A' },
   { href: '/code-reference', label: 'Code Reference', icon: BookOpen, description: 'Xactimate Q&A' },
-  { href: '/feedback', label: 'Report Issue', icon: Bug, description: 'Log a bug or idea' },
 ]
 
 function NavLink({ item, onClick }: { item: typeof NAV_ITEMS[0]; onClick?: () => void }) {

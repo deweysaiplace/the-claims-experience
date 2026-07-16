@@ -58,6 +58,10 @@ export default function FieldScopePage() {
   const [contextOpen, setContextOpen] = useState(true)
 
   const previousTranscriptRef = useRef('')
+  // The browser ends recognition after a few seconds of silence and does not
+  // expose that timer. This tracks whether the user actually pressed stop, so
+  // onend can restart and a thinking pause doesn't end the recording.
+  const shouldListenRef = useRef(false)
 
   // Speech recognition setup
   useEffect(() => {
@@ -91,10 +95,26 @@ export default function FieldScopePage() {
       setTranscript(newFullText + (interim ? ` [${interim}]` : ''))
     }
     recognition.onerror = (e: any) => {
-      if (e.error !== 'no-speech') setError(`Speech error: ${e.error}`)
+      // A pause raises 'no-speech'. Ignore it — onend restarts us.
+      if (e.error === 'no-speech') return
+      // 'aborted' fires on a normal stop() and isn't worth surfacing.
+      if (e.error !== 'aborted') setError(`Speech error: ${e.error}`)
+      shouldListenRef.current = false
       setIsRecording(false)
     }
     recognition.onend = () => {
+      if (shouldListenRef.current) {
+        // Browser stopped on silence, not the user. onresult rebuilds from
+        // previousTranscriptRef, so carry what we have forward or the next
+        // segment overwrites it.
+        previousTranscriptRef.current = transcriptRef.current
+        try {
+          recognition.start()
+          return
+        } catch {
+          // start() throws if it's somehow already running; fall through to stop.
+        }
+      }
       setTranscript(transcriptRef.current)
       setIsRecording(false)
     }
@@ -104,10 +124,12 @@ export default function FieldScopePage() {
   const toggleRecording = () => {
     if (!recognitionRef.current) return
     if (isRecording) {
+      shouldListenRef.current = false
       recognitionRef.current.stop()
     } else {
       setError('')
       previousTranscriptRef.current = transcript // Save whatever is currently typed
+      shouldListenRef.current = true
       recognitionRef.current.start()
       setIsRecording(true)
     }

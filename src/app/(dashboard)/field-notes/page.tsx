@@ -56,6 +56,10 @@ export default function FieldNotesPage() {
 
   const recognitionRef = useRef<ISpeechRecognition | null>(null)
   const activeLocRef = useRef('1')
+  // The browser ends recognition after a few seconds of silence and does not
+  // expose that timer. This tracks whether the user actually pressed stop, so
+  // onend can restart and a thinking pause doesn't end the recording.
+  const shouldListenRef = useRef(false)
   
   useEffect(() => {
     activeLocRef.current = activeLocationId
@@ -98,11 +102,24 @@ export default function FieldNotesPage() {
     }
 
     recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
-      if (e.error !== 'no-speech') setError(`Speech error: ${e.error}`)
+      // A pause raises 'no-speech'. Ignore it — onend restarts us.
+      if (e.error === 'no-speech') return
+      // 'aborted' fires on a normal stop() and isn't worth surfacing.
+      if (e.error !== 'aborted') setError(`Speech error: ${e.error}`)
+      shouldListenRef.current = false
       setIsRecording(false)
     }
 
     recognition.onend = () => {
+      if (shouldListenRef.current) {
+        // Browser stopped on silence, not the user. Keep listening.
+        try {
+          recognition.start()
+          return
+        } catch {
+          // start() throws if it's somehow already running; fall through to stop.
+        }
+      }
       setIsRecording(false)
       setSessionTranscript('')
       sessionTranscriptRef.current = ''
@@ -114,11 +131,13 @@ export default function FieldNotesPage() {
   const toggleRecording = () => {
     if (!recognitionRef.current) return
     if (isRecording) {
+      shouldListenRef.current = false
       recognitionRef.current.stop()
     } else {
       setError('')
       setSessionTranscript('')
       sessionTranscriptRef.current = ''
+      shouldListenRef.current = true
       recognitionRef.current.start()
       setIsRecording(true)
     }
