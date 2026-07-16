@@ -5,11 +5,15 @@ A Next.js web app for insurance adjusters. Uploads MP4/MOV videos of scrolling i
 
 **Time savings:** 2-3 hours manual review → 2-3 minutes per video.
 
+> **Read `PROGRESS.md` first.** It documents the current state, the traps that will
+> waste your time, and the agreed next steps. This file is the short version.
+
 ## Tech Stack
-- Next.js 16, App Router, TypeScript, Tailwind CSS, shadcn/ui
-- Gemini API (primary) + Claude API (fallback)
-- Google Files API (video hosting)
-- Cloudflare Pages via OpenNext (wrangler.toml configured)
+- Next.js 15, App Router, TypeScript, Tailwind CSS, shadcn/ui
+- **Grok (`grok-4.5`) is the primary AI** — the only funded provider. Gemini is a free
+  tier capped at 20 requests/day; the Anthropic account has no credit.
+- Supabase (reports), Gmail SMTP (file notes)
+- **Deployed to Vercel via CLI only** (`npx vercel --prod`). Pushing to GitHub does not deploy.
 
 ## Key Files
 - `src/app/api/parse-video/route.ts` — main AI extraction endpoint
@@ -29,16 +33,23 @@ A Next.js web app for insurance adjusters. Uploads MP4/MOV videos of scrolling i
 4. FINANCIAL SUMMARY (subtotals, taxes, O&P, totals)
 5. RAW TEXT DUMP (complete verbatim extraction)
 
-## Current Status (as of June 2026)
-- App is 90% built
-- Cloudflare wrangler.toml is configured: `name = "the-claims-experience"`, `pages_build_output_dir = ".open-next"`
-- Main blocker: Gemini free-tier quota errors (429 RESOURCE_EXHAUSTED)
-- Claude API key is in .env.local as fallback — needs to be activated in parse-video route
+## Current Status (2026-07-16)
+- Auth, report saving, email, and the AI fallback chain all work and are verified in production.
+- `src/lib/ai-fallback.ts` tries **Grok → Gemini → Claude**. Six of seven live routes use it.
+- Still Gemini-direct: `transcribe` (audio — needs a decision) and `xact-analyze`.
+- **Not built:** GPS/timestamp on photo capture. This is the biggest gap.
 
-## Priority Fix Needed
-In `src/app/api/parse-video/route.ts`: when Gemini returns a 429 error, automatically fall back to Claude API instead of returning the quota error to the user.
+## Next Up
+Collapse to five screens — a merged **Field** tool, **Code Reference**, **Policy Chat**,
+**Reconciler**, **Portal**. Delete Site Walkthroughs, Feedback, the duplicate video routes,
+and the dead `components/auth/` pair. See `PROGRESS.md` for the full plan.
+
+**Do not add features.** The bar: does it make *photo → location → Xactimate codes → file
+note → email* work in a driveway?
 
 ## Reference Docs
-- `DETAILED_PROMPT_FOR_BROTHER.md` — 374-line comprehensive brief with full workflow details
+- `PROGRESS.md` — **start here.** Current state, traps, next steps.
+- `DETAILED_PROMPT_FOR_BROTHER.md` — original 374-line brief. Note: contains a dead
+  Gemini key on line 97, and predates everything above.
 - `TROUBLESHOOTING.md` — diagnostic steps
 - `XACTIMATE_CODES.md` — Xactimate line item reference
