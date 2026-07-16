@@ -1,0 +1,18 @@
+# Vercel builds on its own infrastructure — uploading local build output and
+# deps just makes the deploy slower and more failure-prone.
+.next
+node_modules
+.git
+
+# Local-only scripts and scratch files
+execute-sql.js
+setup-reports-table.js
+check-results.js
+diagnose-api.js
+monitor-data.js
+qa_runner.js
+test-*.js
+test-upload.txt
+scratch_qr
+tunnel.log
+start-dev.bat
