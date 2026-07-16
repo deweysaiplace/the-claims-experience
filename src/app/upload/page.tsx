@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Camera, Upload, X, CheckCircle, Loader2, Shield, ImageIcon } from 'lucide-react'
+import { compressImages } from '@/lib/compress-image'
+import { readJsonOrThrow } from '@/lib/upload'
 
 export default function PhoneUploadPage() {
   const [files, setFiles] = useState<File[]>([])
@@ -31,15 +33,17 @@ export default function PhoneUploadPage() {
     setLoading(true)
     setError('')
 
-    const form = new FormData()
-    files.forEach(f => form.append('files', f))
-    form.append('claimRef', claimRef)
-    form.append('tool', tool)
-
     try {
+      // Straight off the phone camera — the heaviest files the app sees.
+      const prepared = await compressImages(files)
+
+      const form = new FormData()
+      prepared.forEach(f => form.append('files', f))
+      form.append('claimRef', claimRef)
+      form.append('tool', tool)
+
       const res = await fetch('/api/upload-session', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await readJsonOrThrow(res)
       setCode(data.code)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed')
@@ -158,7 +162,10 @@ export default function PhoneUploadPage() {
               <label className="flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-slate-600 rounded-2xl bg-slate-900 hover:border-blue-500 cursor-pointer transition-colors">
                 <Camera className="w-8 h-8 text-slate-400" />
                 <span className="text-slate-300 text-sm font-medium">Take Photo</span>
-                <input type="file" accept="image/*" capture className="hidden" multiple onChange={e => addFiles(e.target.files)} />
+                {/* No `multiple`: Chrome on Android ignores `capture` when it is
+                    present and opens the file picker instead of the camera. The
+                    "Choose Files" button beside this handles multi-select. */}
+                <input type="file" accept="image/*" capture className="hidden" onChange={e => addFiles(e.target.files)} />
               </label>
               <label className="flex flex-col items-center justify-center gap-2 py-8 rounded-2xl bg-slate-800 border border-slate-700 hover:bg-slate-700 cursor-pointer transition-colors">
                 <Upload className="w-8 h-8 text-slate-400" />

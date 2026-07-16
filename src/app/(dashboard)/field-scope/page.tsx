@@ -9,6 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
+import { readJsonOrThrow } from '@/lib/upload'
 
 
 
@@ -189,22 +190,7 @@ export default function FieldScopePage() {
       form.append('causeOfLoss', causeOfLoss)
 
       const res = await fetch('/api/field-scope', { method: 'POST', body: form })
-
-      // Not every failure is JSON — a 413 from the platform is plain text, and
-      // res.json() on it throws "Unexpected token 'R'" instead of saying so.
-      if (!res.ok) {
-        if (res.status === 413) {
-          throw new Error('Those photos are too large to upload. Try fewer photos at once.')
-        }
-        const body = await res.text()
-        try {
-          throw new Error(JSON.parse(body).error ?? 'Analysis failed')
-        } catch {
-          throw new Error(body.slice(0, 120) || `Request failed (${res.status})`)
-        }
-      }
-
-      const data = await res.json()
+      const data = await readJsonOrThrow(res)
       setResult(data.result)
       setProvider(data.provider)
     } catch (err: unknown) {

@@ -9,6 +9,8 @@ import XactPhotoUpload from '@/components/xact/PhotoUpload'
 import XactVoiceRecorder from '@/components/xact/VoiceRecorder'
 import XactResultsPanel from '@/components/xact/ResultsPanel'
 import { getTotalCodeCount, getAllCategories, getCodesByCategory } from '@/lib/code-matcher'
+import { compressImage, compressImages } from '@/lib/compress-image'
+import { readJsonOrThrow } from '@/lib/upload'
 
 interface AnalysisResult {
   observations: string
@@ -96,12 +98,14 @@ export default function XactScopePage() {
     if (!canAnalyze) return
     setLoading(true); setError(''); setResult(null)
     try {
+      // Raw phone photos exceed Vercel's ~4.5MB body cap within a few shots.
+      const prepared = await compressImages(photos)
       const fd = new FormData()
-      photos.forEach(f => fd.append('images', f))
+      prepared.forEach(f => fd.append('images', f))
       fd.append('notes', notes)
       fd.append('transcription', transcription)
       const res = await fetch('/api/xact-analyze', { method: 'POST', body: fd })
-      const data = await res.json()
+      const data = await readJsonOrThrow(res)
       if (!res.ok) throw new Error(data.error || 'Analysis failed')
       setResult(data)
     } catch (err) {
@@ -117,10 +121,10 @@ export default function XactScopePage() {
     if (!quickPhoto) return
     setQuickLoading(true); setQuickError(''); setQuickItems([])
     const form = new FormData()
-    form.append('photo', quickPhoto)
+    form.append('photo', await compressImage(quickPhoto))
     try {
       const res = await fetch('/api/xact-scope', { method: 'POST', body: form })
-      const data = await res.json()
+      const data = await readJsonOrThrow(res)
       if (!res.ok) throw new Error(data.error)
       setQuickItems(data.items)
     } catch (err: unknown) {

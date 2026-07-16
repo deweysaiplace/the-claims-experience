@@ -5,6 +5,8 @@ import { useDropzone } from 'react-dropzone'
 import { Upload, GitCompare, Loader2, Copy, Mail, Check, FileImage, X, FileText, Plus, Camera, Smartphone } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
+import { compressImages } from '@/lib/compress-image'
+import { readJsonOrThrow } from '@/lib/upload'
 
 function MultiPageDropzone({
   label,
@@ -95,11 +97,13 @@ function MultiPageDropzone({
         {/* CAMERA — implicit label, input nested inside */}
         <label className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition-colors flex items-center cursor-pointer select-none">
           <Camera className="w-4 h-4" />
+          {/* No `multiple`: Chrome on Android ignores `capture` when it is
+              present and opens the file picker instead of the camera. The
+              dropzone beside this handles multi-select. */}
           <input
             type="file"
             accept="image/*"
             capture
-            multiple
             className="hidden"
             onChange={onCamera}
           />
@@ -167,17 +171,22 @@ export default function ReconcilerPage() {
     setError('')
     setResult('')
 
-    const form = new FormData()
-    // Append all pages for each estimate
-    pagesA.forEach((f) => form.append('estimateA', f))
-    pagesB.forEach((f) => form.append('estimateB', f))
-    form.append('claimRef', claimRef)
-    form.append('address', address)
-
     try {
+      // Multi-page estimates are the heaviest upload in the app. Raw phone
+      // photos blow past Vercel's ~4.5MB body cap within two or three pages.
+      const [preparedA, preparedB] = await Promise.all([
+        compressImages(pagesA),
+        compressImages(pagesB),
+      ])
+
+      const form = new FormData()
+      preparedA.forEach((f) => form.append('estimateA', f))
+      preparedB.forEach((f) => form.append('estimateB', f))
+      form.append('claimRef', claimRef)
+      form.append('address', address)
+
       const res = await fetch('/api/reconcile', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await readJsonOrThrow(res)
       setResult(data.result)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
