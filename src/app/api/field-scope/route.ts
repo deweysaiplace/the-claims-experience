@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
     const address = formData.get('address') as string || ''
     const adjusterName = formData.get('adjusterName') as string || ''
     const causeOfLoss = formData.get('causeOfLoss') as string || ''
+    // GPS fix from the phone, captured where the photos were taken.
+    const location = formData.get('location') as string || ''
 
     if (photos.length === 0 && !transcript.trim()) {
       return NextResponse.json(
@@ -61,6 +63,7 @@ export async function POST(request: NextRequest) {
       `Date of Inspection: ${today}`,
       claimRef ? `Claim Reference: ${claimRef}` : null,
       address ? `Property Address: ${address}` : null,
+      location ? `GPS at Inspection: ${location}` : null,
       adjusterName ? `Adjuster: ${adjusterName}` : null,
       causeOfLoss ? `Cause of Loss: ${causeOfLoss}` : null,
       transcript ? `\nFIELD NOTES TRANSCRIPT:\n${transcript}` : null,

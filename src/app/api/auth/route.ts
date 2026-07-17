@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 12,
+    // 30 days. At 12 hours this logged you out mid-workday, which for a
+    // single-user tool on your own phone is friction without a security gain.
+    maxAge: 60 * 60 * 24 * 30,
     path: '/',
   })
   return response

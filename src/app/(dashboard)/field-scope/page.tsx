@@ -4,12 +4,13 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {
   Camera, Mic, MicOff, Upload, Loader2, Copy, Mail, Check,
-  FileImage, X, Crosshair, Trash2, Plus, FileText, ChevronDown, ChevronUp,
+  FileImage, X, Crosshair, Trash2, Plus, FileText, ChevronDown, ChevronUp, MapPin,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
+import { getFieldLocation, formatLocation, mapsUrl, type FieldLocation } from '@/lib/geolocation'
 
 
 
@@ -56,8 +57,27 @@ export default function FieldScopePage() {
   const [emailSent, setEmailSent] = useState(false)
   const [provider, setProvider] = useState('')
 
+  // Where the photos were taken. Coordinates + a timestamp, straight off the
+  // phone's GPS — this is what makes a photo evidence of a place and a time
+  // rather than just a picture.
+  const [location, setLocation] = useState<FieldLocation | null>(null)
+  const [locating, setLocating] = useState(false)
+  const [locationError, setLocationError] = useState('')
+
   // UI
   const [contextOpen, setContextOpen] = useState(true)
+
+  const captureLocation = async () => {
+    setLocating(true)
+    setLocationError('')
+    try {
+      setLocation(await getFieldLocation())
+    } catch (err: unknown) {
+      setLocationError(err instanceof Error ? err.message : 'Could not get location.')
+    } finally {
+      setLocating(false)
+    }
+  }
 
   // Everything finalised so far, across restarts. Only ever appended to — see
   // onresult. Rebuilding this from event.results each time double-counts once
@@ -188,6 +208,7 @@ export default function FieldScopePage() {
       form.append('address', address)
       form.append('adjusterName', adjusterName)
       form.append('causeOfLoss', causeOfLoss)
+      if (location) form.append('location', formatLocation(location))
 
       const res = await fetch('/api/field-scope', { method: 'POST', body: form })
       const data = await readJsonOrThrow(res)
@@ -300,6 +321,48 @@ export default function FieldScopePage() {
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Property Address</label>
                   <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 412 Maple St, Neptune NJ"
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Location</label>
+                  {location ? (
+                    <div className="flex items-center gap-2 bg-slate-800 border border-emerald-500/30 rounded-lg px-3 py-2">
+                      <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <a
+                          href={mapsUrl(location)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-emerald-400 font-mono hover:underline block truncate"
+                        >
+                          {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                        </a>
+                        <p className="text-[10px] text-slate-500">
+                          +/-{Math.round(location.accuracy)}m &middot;{' '}
+                          {new Date(location.capturedAt).toLocaleTimeString('en-US')}
+                        </p>
+                      </div>
+                      <button
+                        onClick={captureLocation}
+                        disabled={locating}
+                        className="text-xs text-slate-400 hover:text-white px-2 py-1 flex-shrink-0"
+                      >
+                        {locating ? '...' : 'Redo'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={captureLocation}
+                      disabled={locating}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      {locating ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Getting GPS fix...</>
+                      ) : (
+                        <><MapPin className="w-4 h-4 text-emerald-400" /> Capture GPS Location</>
+                      )}
+                    </button>
+                  )}
+                  {locationError && <p className="text-red-400 text-xs mt-1">{locationError}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Cause of Loss</label>
