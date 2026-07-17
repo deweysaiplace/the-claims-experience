@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Mic, MicOff, Loader2, Copy, Mail, Check, FileText, Trash2, Plus, X, MapPin } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
+import { readJsonOrThrow } from '@/lib/upload'
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList
@@ -191,11 +192,13 @@ export default function FieldNotesPage() {
           claimRef,
         }),
       })
-      if (!res.ok) throw new Error('Send failed')
+      await readJsonOrThrow(res)
       setEmailSent(true)
       setTimeout(() => setEmailSent(false), 3000)
-    } catch {
-      setError('Email failed — check SMTP settings in .env.local')
+    } catch (err: unknown) {
+      // The route already says what's actually wrong. Show that rather than a
+      // canned guess pointing at .env.local, which production doesn't read.
+      setError(err instanceof Error ? err.message : 'Email failed')
     } finally {
       setEmailSending(false)
     }

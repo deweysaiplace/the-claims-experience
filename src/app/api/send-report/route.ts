@@ -49,7 +49,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, sentTo: recipients })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    const detail = err instanceof Error ? err.message : 'Unknown error'
+    console.error('send-report failed:', detail)
+
+    // Gmail rejects bad credentials with "535-5.7.8 Username and Password not
+    // accepted", which tells the user nothing. The usual cause is an app
+    // password pasted with the spaces Google displays it with.
+    const looksLikeAuth = /535|Invalid login|Username and Password not accepted|BadCredentials/i.test(detail)
+    const friendly = looksLikeAuth
+      ? 'Gmail rejected the login. Check GMAIL_APP_PASSWORD — it must be the 16-character app password with no spaces, and GMAIL_USER must be the account it was created on.'
+      : `Email failed: ${detail}`
+
+    return NextResponse.json({ error: friendly, detail }, { status: 500 })
   }
 }

@@ -213,11 +213,13 @@ export default function ReconcilerPage() {
           claimRef,
         }),
       })
-      if (!res.ok) throw new Error('Send failed')
+      await readJsonOrThrow(res)
       setEmailSent(true)
       setTimeout(() => setEmailSent(false), 3000)
-    } catch {
-      setError('Email failed — check SMTP settings in .env.local')
+    } catch (err: unknown) {
+      // The route already says what's actually wrong. Show that rather than a
+      // canned guess pointing at .env.local, which production doesn't read.
+      setError(err instanceof Error ? err.message : 'Email failed')
     } finally {
       setEmailSending(false)
     }

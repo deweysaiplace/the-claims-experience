@@ -218,11 +218,14 @@ export default function FieldScopePage() {
           claimRef,
         }),
       })
-      if (!res.ok) throw new Error('Send failed')
+      await readJsonOrThrow(res)
       setEmailSent(true)
       setTimeout(() => setEmailSent(false), 3000)
-    } catch {
-      setError('Email failed — check SMTP settings in .env.local')
+    } catch (err: unknown) {
+      // The route already says what's actually wrong (missing config, SMTP
+      // auth rejected, etc). Show that instead of a canned guess that points
+      // at .env.local — which isn't where production reads from anyway.
+      setError(err instanceof Error ? err.message : 'Email failed')
     } finally {
       setEmailSending(false)
     }
