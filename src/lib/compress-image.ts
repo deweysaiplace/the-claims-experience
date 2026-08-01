@@ -4,16 +4,24 @@
  * plain text ("Request Entity Too Large"), calling res.json() on it fails with
  * "Unexpected token 'R'" rather than anything that names the real problem.
  *
- * Downscale and re-encode client-side before upload. 1600px on the long edge is
- * well past what the vision models need to read damage, and takes a 12MB photo
- * to roughly 300KB.
+ * Downscale and re-encode client-side before upload. These are photographed
+ * text documents (Xactimate line items), not scenery — color carries no
+ * information a vision model needs to read them, so converting to grayscale
+ * shrinks the file with no cost to legibility. Resolution also scales down
+ * as the total page count grows: a 9-page reconcile run sends every image to
+ * the AI in one combined request, so more pages means each one needs to be
+ * lighter to keep the whole request — and the API cost — reasonable.
  */
 export async function compressImage(
   file: File,
-  maxEdge = 1600,
-  quality = 0.8
+  totalPageCount = 1
 ): Promise<File> {
   if (!file.type.startsWith('image/')) return file
+
+  const { maxEdge, quality } =
+    totalPageCount <= 4 ? { maxEdge: 1600, quality: 0.8 } :
+    totalPageCount <= 8 ? { maxEdge: 1400, quality: 0.75 } :
+    { maxEdge: 1150, quality: 0.68 }
 
   let bitmap: ImageBitmap
   try {
@@ -38,6 +46,9 @@ export async function compressImage(
     return file
   }
 
+  // Grayscale: photographed line-item text, not a photo where color carries
+  // meaning — this is a free size reduction with no legibility cost.
+  ctx.filter = 'grayscale(1)'
   ctx.drawImage(bitmap, 0, 0, width, height)
   bitmap.close()
 
@@ -54,7 +65,13 @@ export async function compressImage(
   })
 }
 
-/** Compress a batch, keeping any that fail as-is. */
-export async function compressImages(files: File[]): Promise<File[]> {
-  return Promise.all(files.map((f) => compressImage(f).catch(() => f)))
+/**
+ * Compress a batch, keeping any that fail as-is. Pass totalPageCount as the
+ * COMBINED count across both estimates (A + B) — that's what actually
+ * determines the size of the single AI request this batch feeds into, not
+ * just the size of this one side.
+ */
+export async function compressImages(files: File[], totalPageCount?: number): Promise<File[]> {
+  const total = totalPageCount ?? files.length
+  return Promise.all(files.map((f) => compressImage(f, total).catch(() => f)))
 }

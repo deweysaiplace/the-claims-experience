@@ -118,20 +118,75 @@ async function tryClaude(
   return first?.type === 'text' ? { text: first.text, provider: 'claude' } : null
 }
 
+/**
+ * Races a provider attempt against a timeout so one slow/hung call can't eat
+ * the whole function budget (maxDuration) before the next provider in the
+ * fallback chain ever gets a turn. This doesn't cancel the underlying network
+ * call — it just stops waiting on it — which is fine here since the whole
+ * function returns shortly after anyway.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    ),
+  ])
+}
+
 export async function generateWithFallback(
   prompt: string,
   systemInstruction?: string,
   base64Images?: string[] // Optional array of base64 images (without data URI prefix)
 ): Promise<AIFallbackResponse> {
   const errors: string[] = []
+  // Tightened after a real 9-page run still hit FUNCTION_INVOCATION_TIMEOUT
+  // with the previous fully-sequential 35s-per-attempt budget (up to 105s
+  // worst case). Vercel's actual enforced ceiling may be lower than the
+  // 120s maxDuration set in the route if this deployment doesn't have Fluid
+  // Compute enabled — worth confirming, but the code shouldn't depend on it.
+  const ATTEMPT_TIMEOUT_MS = 25_000
 
-  for (const attempt of [tryGrok, tryGemini, tryClaude]) {
-    try {
-      const result = await attempt(prompt, systemInstruction, base64Images)
-      if (result) return result
-    } catch (e: any) {
-      console.error(`${attempt.name} failed:`, e.message)
-      errors.push(`${attempt.name.replace('try', '')}: ${e.message}`)
+  // Grok is the only paid, reliable account (see note above) — try it alone
+  // first so the common case (Grok just works) stays fast and doesn't burn
+  // Gemini's 20/day free-tier cap or Claude balance for no reason.
+  try {
+    const grok = await withTimeout(
+      tryGrok(prompt, systemInstruction, base64Images),
+      ATTEMPT_TIMEOUT_MS,
+      'Grok'
+    )
+    if (grok) return grok
+  } catch (e: any) {
+    console.error('Grok failed:', e.message)
+    errors.push(`Grok: ${e.message}`)
+  }
+
+  // Grok didn't come through — race the two backups against each other
+  // instead of trying them one at a time, so a slow Gemini call doesn't
+  // block Claude from getting a turn within the remaining budget.
+  //
+  // Explicit labels here, not attempt.name — production builds minify
+  // function names (e.g. tryGemini becomes "h"), which is why an earlier
+  // error showed unreadable single-letter provider names instead of
+  // "Gemini" / "Claude".
+  const backups: { fn: typeof tryGemini; label: string }[] = [
+    { fn: tryGemini, label: 'Gemini' },
+    { fn: tryClaude, label: 'Claude' },
+  ]
+  const settled = await Promise.allSettled(
+    backups.map(({ fn, label }) =>
+      withTimeout(fn(prompt, systemInstruction, base64Images), ATTEMPT_TIMEOUT_MS, label)
+    )
+  )
+
+  for (let i = 0; i < settled.length; i++) {
+    const outcome = settled[i]
+    const label = backups[i].label
+    if (outcome.status === 'fulfilled' && outcome.value) return outcome.value
+    if (outcome.status === 'rejected') {
+      console.error(`${label} failed:`, outcome.reason?.message ?? outcome.reason)
+      errors.push(`${label}: ${outcome.reason?.message ?? outcome.reason}`)
     }
   }
 

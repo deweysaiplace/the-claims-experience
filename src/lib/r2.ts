@@ -1,15 +1,31 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-const accountId = process.env.R2_ACCOUNT_ID!
+const accountId = process.env.R2_ACCOUNT_ID
 const bucket = process.env.R2_BUCKET_NAME ?? 'claims-sessions'
+
+/**
+ * The phone-handoff feature (upload-session / get-session) needs all three of
+ * these set. Without them, building the client below would silently produce
+ * an endpoint like "https://undefined.r2.cloudflarestorage.com" — an
+ * unresolvable host that surfaces to the user as a bare "TypeError: fetch
+ * failed" with no indication of what's actually wrong. Callers should check
+ * this first and return a clear error instead of letting that happen.
+ */
+export function isR2Configured(): boolean {
+  return Boolean(
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY
+  )
+}
 
 export const r2 = new S3Client({
   region: 'auto',
-  endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+  endpoint: `https://${accountId ?? 'not-configured'}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
   },
 })
 

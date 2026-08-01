@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { r2, getPresignedUrl, SessionManifest } from '@/lib/r2'
+import { r2, getPresignedUrl, isR2Configured, SessionManifest } from '@/lib/r2'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
+  if (!isR2Configured()) {
+    return NextResponse.json(
+      { error: 'Phone handoff isn\'t configured on this deployment yet. R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY need to be set.' },
+      { status: 500 }
+    )
+  }
+
   try {
     const { code } = await params
     const clean = code.toUpperCase().trim()

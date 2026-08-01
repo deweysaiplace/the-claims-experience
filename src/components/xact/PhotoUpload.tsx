@@ -54,7 +54,7 @@ export default function XactPhotoUpload({ onPhotosChange }: PhotoUploadProps) {
           <input
             type="file"
             accept="image/*"
-            capture
+            capture="environment"
             className="hidden"
             onChange={(e) => e.target.files && addFiles(e.target.files)}
           />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateWithFallback } from '@/lib/ai-fallback'
+import { verifyAndReplaceCodeSection } from '@/lib/xactimate-verify'
 import { XACTIMATE_CODES } from '@/data/xactimate-codes'
 
 const FIELD_SCOPE_PROMPT = `You are an elite property insurance field adjuster AI assistant. You are analyzing inspection photos and field notes from a property damage claim.
@@ -17,10 +18,18 @@ For each photo, describe:
 Using the Xactimate code reference below, generate a scoping table:
 | # | Xactimate Code | Description | Qty | Unit | Category | Notes |
 For each damaged item you identify:
-- Match to the EXACT Xactimate code from the reference
+- Match to the EXACT Xactimate code from the reference. Do not invent a code
+  that is not in the list below -- an adjuster will act on this.
 - Estimate reasonable quantities based on what's visible
-- If you cannot determine an exact code, use the closest match and flag with ⚠️
+- If nothing in the reference is a good match, say so in the Notes column
+  instead of guessing a code that looks plausible but isn't real
 - Group by category (Roofing, Drywall, Painting, etc.)
+
+## CODES REFERENCED
+List every distinct Xactimate code you used in the table above, one bare code per line with a leading dash and nothing else — e.g.:
+- RFGARC
+- WTRDRYLF
+This section is parsed by code, not read by the adjuster, so it must contain ONLY the codes, exactly as written in the table above, one per line.
 
 ## 3. FIELD NARRATIVE
 Write a professional claim file narrative suitable for direct entry into the claim system. Include:
@@ -30,8 +39,6 @@ Write a professional claim file narrative suitable for direct entry into the cla
 - Cause of loss assessment
 - Recommended scope of repairs
 - Any concerns or items requiring follow-up
-
-XACTIMATE CODE REFERENCE:
 `
 
 export async function POST(request: NextRequest) {
@@ -53,8 +60,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const xactCodes = XACTIMATE_CODES
-
     const today = new Date().toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
     })
@@ -69,7 +74,13 @@ export async function POST(request: NextRequest) {
       transcript ? `\nFIELD NOTES TRANSCRIPT:\n${transcript}` : null,
     ].filter(Boolean).join('\n')
 
-    const fullPrompt = `${FIELD_SCOPE_PROMPT}${xactCodes}\n\nCLAIM CONTEXT:\n${contextLines}`
+    // The model must choose codes from a real reference, not its own training
+    // data -- without this, it fabricates plausible-looking codes (e.g.
+    // GUT5K, GTTRGD) that don't exist. verifyAndReplaceCodeSection below is a
+    // second, independent check against the fuller price list; this is the
+    // primary defense, since it's what stops the fabrication in the first
+    // place rather than just labeling it after the fact.
+    const fullPrompt = `${FIELD_SCOPE_PROMPT}\n${XACTIMATE_CODES}\n\nCLAIM CONTEXT:\n${contextLines}`
 
     let result = ''
     let provider = 'gemini'
@@ -85,8 +96,25 @@ export async function POST(request: NextRequest) {
       )
 
       const response = await generateWithFallback(fullPrompt, undefined, base64Images)
-      result = response.text
+      let text = response.text
       provider = response.provider
+
+      // Same safety net as the reconciler: if a model wraps its answer in a
+      // full HTML document instead of the requested markdown, don't show
+      // that raw markup to the adjuster.
+      if (/^\s*<!DOCTYPE html/i.test(text) || /^\s*<html[\s>]/i.test(text)) {
+        const bodyMatch = text.match(/<body[^>]*>([\s\S]*)<\/body>/i)
+        text = (bodyMatch ? bodyMatch[1] : text)
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/[ \t]+\n/g, '\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim()
+      }
+
+      result = verifyAndReplaceCodeSection(text)
       console.log(`Field Scope: Analysis successful via ${provider}!`)
     } catch (err: any) {
       throw new Error(err.message)

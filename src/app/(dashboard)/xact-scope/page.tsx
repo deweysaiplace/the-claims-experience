@@ -294,7 +294,7 @@ export default function XactScopePage() {
                     <label className="flex flex-col items-center justify-center gap-2 py-10 border-2 border-dashed border-slate-600 rounded-xl bg-slate-800/60 hover:bg-slate-800 hover:border-slate-500 text-slate-300 hover:text-white text-sm font-semibold cursor-pointer transition-colors select-none">
                       <Camera className="w-7 h-7" />
                       Take Photo
-                      <input type="file" accept="image/*" capture className="hidden" onChange={e => { if (e.target.files?.[0]) { setQuickPhoto(e.target.files[0]); setQuickItems([]) } }} />
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { if (e.target.files?.[0]) { setQuickPhoto(e.target.files[0]); setQuickItems([]) } }} />
                     </label>
                     <label className="flex flex-col items-center justify-center gap-2 py-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white text-sm font-medium cursor-pointer transition-colors select-none">
                       <Upload className="w-6 h-6" />

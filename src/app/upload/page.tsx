@@ -165,7 +165,7 @@ export default function PhoneUploadPage() {
                 {/* No `multiple`: Chrome on Android ignores `capture` when it is
                     present and opens the file picker instead of the camera. The
                     "Choose Files" button beside this handles multi-select. */}
-                <input type="file" accept="image/*" capture className="hidden" onChange={e => addFiles(e.target.files)} />
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => addFiles(e.target.files)} />
               </label>
               <label className="flex flex-col items-center justify-center gap-2 py-8 rounded-2xl bg-slate-800 border border-slate-700 hover:bg-slate-700 cursor-pointer transition-colors">
                 <Upload className="w-8 h-8 text-slate-400" />

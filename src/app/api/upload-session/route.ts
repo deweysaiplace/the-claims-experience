@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { uploadToR2, generateCode, keyExists, SessionManifest } from '@/lib/r2'
+import { uploadToR2, generateCode, keyExists, isR2Configured, SessionManifest } from '@/lib/r2'
 
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
+  if (!isR2Configured()) {
+    return NextResponse.json(
+      { error: 'Phone handoff isn\'t configured on this deployment yet. R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY need to be set.' },
+      { status: 500 }
+    )
+  }
+
   try {
     const form = await req.formData()
     const files = form.getAll('files') as File[]

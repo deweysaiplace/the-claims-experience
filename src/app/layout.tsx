@@ -53,9 +53,23 @@ export default function RootLayout({
         {children}
         <script dangerouslySetInnerHTML={{
           __html: `
+            // /sw.js has never existed -- next-pwa was installed but never
+            // wired into next.config.ts, so this registration always 404'd.
+            // If a service worker somehow got installed anyway from an
+            // earlier deploy, an already-installed one keeps running from
+            // its cached script indefinitely; the browser does not drop it
+            // just because the endpoint now 404s. That means a phone can be
+            // silently served stale JS from months ago no matter what ships
+            // today. Actively unregister and clear caches instead of trying
+            // to register, so this can't happen again.
             if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js');
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                regs.forEach(function(reg) { reg.unregister(); });
+              });
+            }
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                names.forEach(function(name) { caches.delete(name); });
               });
             }
           `

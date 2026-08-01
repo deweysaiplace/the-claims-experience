@@ -99,11 +99,14 @@ function MultiPageDropzone({
           <Camera className="w-4 h-4" />
           {/* No `multiple`: Chrome on Android ignores `capture` when it is
               present and opens the file picker instead of the camera. The
-              dropzone beside this handles multi-select. */}
+              dropzone beside this handles multi-select. `capture="environment"`,
+              not a bare `capture` -- "user"/"environment" are the only valid
+              values per spec, and a bare attribute leaves which camera app
+              opens up to the browser's own guess. */}
           <input
             type="file"
             accept="image/*"
-            capture
+            capture="environment"
             className="hidden"
             onChange={onCamera}
           />

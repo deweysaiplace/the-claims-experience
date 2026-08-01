@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: '/portal', label: 'Reports Portal', icon: FileText, description: 'View saved reports' },
   { href: '/field-scope', label: 'Field Scope', icon: Crosshair, description: 'Photos + voice → scope' },
   { href: '/reconciler', label: 'Estimate Reconciler', icon: GitCompare, description: 'Compare estimates' },
+  { href: '/engineer-scope', label: 'Engineer Scope', icon: Shield, description: 'Report → Xactimate items' },
   { href: '/xact-scope', label: 'Xact Code Finder', icon: Camera, description: 'Photos + voice → codes' },
   { href: '/field-notes', label: 'Field Narratives', icon: Mic, description: 'Voice → file note' },
   { href: '/policy-chat', label: 'Policy Chat', icon: MessageCircle, description: 'Policy Q&A' },

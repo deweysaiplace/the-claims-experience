@@ -153,8 +153,13 @@ export default function PortalPage() {
                   </div>
                   
                   <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-white truncate">
-                      {report.claim_ref ? `Claim ${report.claim_ref}` : 'Unknown Claim'}
+                    <h3 className="text-sm font-bold text-white truncate uppercase tracking-wide">
+                      {(() => {
+                        const dateStr = new Date(report.created_at).toISOString().split('T')[0]
+                        const nameStr = report.adjuster_name ? report.adjuster_name.toUpperCase() : ''
+                        const refStr = report.claim_ref ? `CLAIM ${report.claim_ref}` : ''
+                        return `${dateStr} — ${nameStr || refStr || 'UNNAMED'}`
+                      })()}
                     </h3>
                     {report.address && (
                       <p className="text-xs text-slate-400 truncate">{report.address}</p>
