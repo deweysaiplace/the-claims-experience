@@ -79,10 +79,18 @@ export default function FieldScopePage() {
     }
   }
 
-  // Everything finalised so far, across restarts. Only ever appended to — see
-  // onresult. Rebuilding this from event.results each time double-counts once
-  // recognition restarts.
-  const finalTextRef = useRef('')
+  // On this device, isFinal results aren't disjoint chunks -- the SAME result
+  // keeps getting re-finalized with the sentence-so-far each time a new word
+  // lands ("there" -> "there once" -> "there once was" ...), each marked
+  // final. Appending each one produced "there there once there once was".
+  // Fix: never append incrementally. Each onresult, rebuild the CURRENT
+  // session's final text fresh from the complete result set (index 0 up),
+  // and replace -- don't add to -- whatever this session contributed so far.
+  // preSessionTextRef is what existed before this recording session (typed
+  // text, or earlier sessions); a genuine start() always resets
+  // event.results, so that boundary is reliable even though isFinal isn't.
+  const preSessionTextRef = useRef('')
+  const lastCommittedRef = useRef('')
   // The browser ends recognition after a few seconds of silence and does not
   // expose that timer. This tracks whether the user actually pressed stop, so
   // onend can restart and a thinking pause doesn't end the recording.
@@ -103,25 +111,22 @@ export default function FieldScopePage() {
     recognition.lang = 'en-US'
 
     recognition.onresult = (event: any) => {
+      // Rebuild from index 0 every time -- not from event.resultIndex, and
+      // not appended to what we had. See preSessionTextRef comment above.
+      let sessionFinal = ''
       let interim = ''
-      // Start at resultIndex — anything before it was appended on an earlier
-      // fire. Looping from 0 re-adds finalised text on every event.
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          const phrase = event.results[i][0].transcript.trim()
-          if (!phrase) continue
-          // A restart can re-deliver the phrase that ended the previous session,
-          // and a late onresult can arrive after onend. Both re-append text we
-          // already have. Skip anything already sitting at the tail.
-          if (finalTextRef.current.trimEnd().endsWith(phrase)) continue
-          finalTextRef.current += phrase + ' '
+          sessionFinal += event.results[i][0].transcript + ' '
         } else {
           interim += event.results[i][0].transcript
         }
       }
 
-      transcriptRef.current = finalTextRef.current.trim()
-      setTranscript(transcriptRef.current + (interim ? ` [${interim}]` : ''))
+      const combined = (preSessionTextRef.current + ' ' + sessionFinal).trim()
+      lastCommittedRef.current = combined
+      transcriptRef.current = combined
+      setTranscript(combined + (interim ? ` [${interim}]` : ''))
     }
     recognition.onerror = (e: any) => {
       // A pause raises 'no-speech'. Ignore it — onend restarts us.
@@ -133,8 +138,10 @@ export default function FieldScopePage() {
     }
     recognition.onend = () => {
       if (shouldListenRef.current) {
-        // Browser stopped on silence, not the user. finalTextRef already holds
-        // everything said so far, so just resume — nothing to carry over.
+        // Browser stopped on silence, not the user. A real start() resets
+        // event.results, so the next session must carry forward everything
+        // committed so far as its new pre-session baseline.
+        preSessionTextRef.current = lastCommittedRef.current
         try {
           recognition.start()
           return
@@ -157,7 +164,9 @@ export default function FieldScopePage() {
       setError('')
       // Seed with whatever is already in the box (typed, or from an earlier
       // recording) so new speech appends instead of replacing it.
-      finalTextRef.current = transcript.trim() ? transcript.trim() + ' ' : ''
+      const existing = transcript.trim()
+      preSessionTextRef.current = existing
+      lastCommittedRef.current = existing
       shouldListenRef.current = true
       recognitionRef.current.start()
       setIsRecording(true)

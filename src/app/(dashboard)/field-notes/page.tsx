@@ -61,6 +61,21 @@ export default function FieldNotesPage() {
   // expose that timer. This tracks whether the user actually pressed stop, so
   // onend can restart and a thinking pause doesn't end the recording.
   const shouldListenRef = useRef(false)
+  // On this device, isFinal results aren't disjoint chunks -- the SAME result
+  // keeps getting re-finalized with the sentence-so-far each time a new word
+  // lands ("there" -> "there once" -> "there once was" ...), each marked
+  // final. Appending each one produced "there there once there once was".
+  // Fix: never append incrementally. Each onresult, rebuild the CURRENT
+  // session's final text fresh from the complete result set (index 0 up),
+  // and replace -- don't add to -- whatever this session contributed so far.
+  // preSessionTranscriptRef is what existed before this recording session
+  // (typed text, or earlier sessions); a genuine start() always resets
+  // event.results, so that boundary is reliable even though isFinal isn't.
+  const preSessionTranscriptRef = useRef('')
+  // Mirrors `combined` from the latest onresult. onend is a stable closure
+  // from mount (empty-deps useEffect), so it can't read fresh component state
+  // -- this ref is how it knows the real baseline to restart from.
+  const lastCommittedRef = useRef('')
   
   useEffect(() => {
     activeLocRef.current = activeLocationId
@@ -79,29 +94,24 @@ export default function FieldNotesPage() {
     recognition.lang = 'en-US'
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let currentFinal = ''
+      // Rebuild from index 0 every time -- not from event.resultIndex, and not
+      // appended to what we had. See preSessionTranscriptRef comment above.
+      let sessionFinal = ''
       let currentInterim = ''
-      
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          currentFinal += event.results[i][0].transcript + ' '
+          sessionFinal += event.results[i][0].transcript + ' '
         } else {
           currentInterim += event.results[i][0].transcript
         }
       }
 
-      if (currentFinal.trim()) {
-        const phrase = currentFinal.trim()
-        setLocations(prev => prev.map(loc => {
-          if (loc.id !== activeLocRef.current) return loc
-          // A restart can re-deliver the phrase that ended the previous session,
-          // and a late onresult can arrive after onend. Both would re-append text
-          // we already have. Skip anything already sitting at the tail.
-          if (loc.transcript.trimEnd().endsWith(phrase)) return loc
-          return { ...loc, transcript: (loc.transcript + ' ' + phrase).trim() }
-        }))
-      }
-      
+      const combined = (preSessionTranscriptRef.current + ' ' + sessionFinal).trim()
+      lastCommittedRef.current = combined
+      setLocations(prev => prev.map(loc =>
+        loc.id === activeLocRef.current ? { ...loc, transcript: combined } : loc
+      ))
+
       setSessionTranscript(currentInterim ? `[${currentInterim}]` : '')
     }
 
@@ -116,7 +126,10 @@ export default function FieldNotesPage() {
 
     recognition.onend = () => {
       if (shouldListenRef.current) {
-        // Browser stopped on silence, not the user. Keep listening.
+        // Browser stopped on silence, not the user. A real start() resets
+        // event.results, so the next session must carry forward everything
+        // committed so far as its new pre-session baseline.
+        preSessionTranscriptRef.current = lastCommittedRef.current
         try {
           recognition.start()
           return
@@ -141,6 +154,11 @@ export default function FieldNotesPage() {
       setError('')
       setSessionTranscript('')
       sessionTranscriptRef.current = ''
+      // Whatever's already in the active location (typed text, or an earlier
+      // session) is the baseline new speech gets appended onto.
+      const existing = locations.find(l => l.id === activeLocationId)?.transcript ?? ''
+      preSessionTranscriptRef.current = existing
+      lastCommittedRef.current = existing
       shouldListenRef.current = true
       recognitionRef.current.start()
       setIsRecording(true)
