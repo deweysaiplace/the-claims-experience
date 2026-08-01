@@ -214,6 +214,11 @@ export default function FieldScopePage() {
       const data = await readJsonOrThrow(res)
       setResult(data.result)
       setProvider(data.provider)
+      // Save immediately rather than waiting on a manual click. This is the
+      // fix for "I ran the analysis and the report never showed up in
+      // Portal" -- the report was never missing, Save was just an easy step
+      // to not know about. The button stays for re-saving after edits.
+      saveReport(data.result)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
     } finally {
@@ -246,7 +251,10 @@ export default function FieldScopePage() {
       // The route already says what's actually wrong (missing config, SMTP
       // auth rejected, etc). Show that instead of a canned guess that points
       // at .env.local — which isn't where production reads from anyway.
-      setError(err instanceof Error ? err.message : 'Email failed')
+      // resultError, not the top-level error: this button lives in the
+      // results panel, and the top-level error sits above the Analyze
+      // button, which on a phone is off-screen by the time you get here.
+      setResultError(err instanceof Error ? err.message : 'Email failed')
     } finally {
       setEmailSending(false)
     }
@@ -254,9 +262,18 @@ export default function FieldScopePage() {
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  // Separate from the top-level `error` state, which sits above the results
+  // panel next to the Analyze button. On a phone that's off-screen by the
+  // time you're looking at results and clicking Save, so a real failure
+  // there was invisible -- it looked like the button did nothing.
+  const [resultError, setResultError] = useState('')
 
-  const handleSavePortal = async () => {
+  // Takes content explicitly rather than reading the `result` state, so the
+  // auto-save right after analysis can save what the API just returned
+  // without waiting on a state update to land first.
+  const saveReport = async (content: string) => {
     setSaving(true)
+    setResultError('')
     try {
       const res = await fetch('/api/reports', {
         method: 'POST',
@@ -265,19 +282,25 @@ export default function FieldScopePage() {
           claimRef,
           address,
           adjusterName,
-          content: result,
+          content,
           type: 'field-scope'
         })
       })
-      if (!res.ok) throw new Error('Save failed')
+      await readJsonOrThrow(res)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-    } catch {
-      setError('Failed to save report to portal')
+    } catch (err: unknown) {
+      // Auto-save failing is worth surfacing but shouldn't read as "the whole
+      // analysis failed" -- the report is right there on screen either way.
+      setResultError(
+        `Auto-save to Portal failed: ${err instanceof Error ? err.message : 'unknown error'}. Use Save to retry.`
+      )
     } finally {
       setSaving(false)
     }
   }
+
+  const handleSavePortal = () => saveReport(result)
 
   return (
     <div className="max-w-6xl mx-auto space-y-5">
@@ -512,6 +535,7 @@ export default function FieldScopePage() {
                     </button>
                   </div>
                 </div>
+                {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
               </CardHeader>
               <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">

@@ -174,9 +174,13 @@ export default function ReconcilerPage() {
     try {
       // Multi-page estimates are the heaviest upload in the app. Raw phone
       // photos blow past Vercel's ~4.5MB body cap within two or three pages.
+      // Compression scales down harder as the combined page count grows,
+      // since that's what determines how much data the AI has to churn
+      // through in one request.
+      const totalPages = pagesA.length + pagesB.length
       const [preparedA, preparedB] = await Promise.all([
-        compressImages(pagesA),
-        compressImages(pagesB),
+        compressImages(pagesA, totalPages),
+        compressImages(pagesB, totalPages),
       ])
 
       const form = new FormData()
@@ -188,6 +192,10 @@ export default function ReconcilerPage() {
       const res = await fetch('/api/reconcile', { method: 'POST', body: form })
       const data = await readJsonOrThrow(res)
       setResult(data.result)
+      // Save immediately rather than waiting on a manual click -- this is the
+      // fix for "I ran reconciliation and it never showed up in Portal".
+      // The Save button stays for re-saving after edits.
+      saveReport(data.result)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
     } finally {
@@ -219,7 +227,9 @@ export default function ReconcilerPage() {
     } catch (err: unknown) {
       // The route already says what's actually wrong. Show that rather than a
       // canned guess pointing at .env.local, which production doesn't read.
-      setError(err instanceof Error ? err.message : 'Email failed')
+      // resultError, not error: this button is next to the results panel,
+      // and error sits above Reconcile, off-screen on a phone by now.
+      setResultError(err instanceof Error ? err.message : 'Email failed')
     } finally {
       setEmailSending(false)
     }
@@ -227,9 +237,16 @@ export default function ReconcilerPage() {
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  // Separate from the top-level `error` state above the Reconcile button --
+  // on a phone that's off-screen once you're looking at results, so a real
+  // save failure there was invisible.
+  const [resultError, setResultError] = useState('')
 
-  const handleSavePortal = async () => {
+  // Takes content explicitly so the auto-save right after reconciliation can
+  // save what the API just returned without waiting on a state update.
+  const saveReport = async (content: string) => {
     setSaving(true)
+    setResultError('')
     try {
       const res = await fetch('/api/reports', {
         method: 'POST',
@@ -238,19 +255,23 @@ export default function ReconcilerPage() {
           claimRef,
           address,
           adjusterName: null,
-          content: result,
+          content,
           type: 'reconciliation'
         })
       })
-      if (!res.ok) throw new Error('Save failed')
+      await readJsonOrThrow(res)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-    } catch {
-      setError('Failed to save report to portal')
+    } catch (err: unknown) {
+      setResultError(
+        `Auto-save to Portal failed: ${err instanceof Error ? err.message : 'unknown error'}. Use Save to retry.`
+      )
     } finally {
       setSaving(false)
     }
   }
+
+  const handleSavePortal = () => saveReport(result)
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -369,6 +390,7 @@ export default function ReconcilerPage() {
                 </button>
               </div>
             </div>
+            {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
           </CardHeader>
           <CardContent className="pt-0">
             <div className="prose prose-invert prose-sm max-w-none prose-table:text-xs prose-headings:text-slate-200 prose-p:text-slate-300 prose-li:text-slate-300">

@@ -164,9 +164,12 @@ export default function FieldNotesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locations: payloadLocations, claimRef, address, adjusterName }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await readJsonOrThrow(res)
       setNote(data.note)
+      // Save immediately rather than waiting on a manual click -- this is the
+      // fix for "I generated the note and it never showed up in Portal".
+      // The Save button stays for re-saving after edits.
+      saveReport(data.note)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Generation failed')
     } finally {
@@ -198,7 +201,9 @@ export default function FieldNotesPage() {
     } catch (err: unknown) {
       // The route already says what's actually wrong. Show that rather than a
       // canned guess pointing at .env.local, which production doesn't read.
-      setError(err instanceof Error ? err.message : 'Email failed')
+      // resultError, not error: this button is next to the generated note,
+      // and error sits above Generate, off-screen on a phone by now.
+      setResultError(err instanceof Error ? err.message : 'Email failed')
     } finally {
       setEmailSending(false)
     }
@@ -227,9 +232,16 @@ export default function FieldNotesPage() {
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  // Separate from the top-level `error` state above the Generate button --
+  // on a phone that's off-screen once you're looking at the generated note,
+  // so a real save failure there was invisible.
+  const [resultError, setResultError] = useState('')
 
-  const handleSavePortal = async () => {
+  // Takes content explicitly so the auto-save right after generation can
+  // save what the API just returned without waiting on a state update.
+  const saveReport = async (content: string) => {
     setSaving(true)
+    setResultError('')
     try {
       const res = await fetch('/api/reports', {
         method: 'POST',
@@ -238,19 +250,23 @@ export default function FieldNotesPage() {
           claimRef,
           address,
           adjusterName,
-          content: note,
+          content,
           type: 'field-note'
         })
       })
-      if (!res.ok) throw new Error('Save failed')
+      await readJsonOrThrow(res)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-    } catch {
-      setError('Failed to save report to portal')
+    } catch (err: unknown) {
+      setResultError(
+        `Auto-save to Portal failed: ${err instanceof Error ? err.message : 'unknown error'}. Use Save to retry.`
+      )
     } finally {
       setSaving(false)
     }
   }
+
+  const handleSavePortal = () => saveReport(note)
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -466,6 +482,7 @@ export default function FieldNotesPage() {
                     </button>
                   </div>
                 </div>
+                {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="prose prose-invert prose-sm max-w-none prose-headings:text-slate-200 prose-p:text-slate-300 prose-li:text-slate-300">

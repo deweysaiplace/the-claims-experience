@@ -49,3 +49,5 @@ setup-reports-table.js
 
 .vercel
 .env*
+check-db.js
+test-db.js
