@@ -70,18 +70,15 @@ export function verifyAndReplaceCodeSection(text: string): string {
   if (rawCodes.length === 0) return text
 
   const results = verifyCodes(rawCodes)
-  const { count, generatedAt } = getPriceListInfo()
+  const { count } = getPriceListInfo()
+  const unmatched = results.filter((r) => !r.found)
 
-  const lines = results.map((r) =>
-    r.found
-      ? `- ✅ **${r.code}** — ${r.description} (${r.unit}) — matches your extracted price list`
-      : `- ⚠️ **${r.code}** — not in this ${count}-code extract. The model is grounded against a separate, smaller Xactimate reference, so this can be a real code from that list rather than a fabrication -- but confirm it exists in Xactimate before it goes in the file.`
-  )
-
-  const replacement =
-    `## CODE VERIFICATION (checked against your price list — ${count} codes, extracted ${generatedAt})\n` +
-    lines.join('\n') +
-    '\n'
+  // One paragraph per code, repeating the same boilerplate sentence, reads as
+  // a wall of noise at the bottom of the report. A single scannable line
+  // says the same thing: everything matched, or here's exactly what to check.
+  const replacement = unmatched.length === 0
+    ? `## CODE CHECK\n✅ All codes matched your ${count}-code price list.\n`
+    : `## CODE CHECK\n⚠️ Not in your ${count}-code extract -- may be real under a different list, confirm before filing: ${unmatched.map((r) => `**${r.code}**`).join(', ')}\n`
 
   return text.replace(sectionRegex, replacement)
 }

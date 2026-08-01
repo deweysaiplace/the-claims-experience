@@ -64,8 +64,17 @@ The next ${filesB.length} image(s) are Estimate B (Contractor Estimate).
 
 Generate a structured response with EXACTLY these sections:
 
+## KEY DIFFERENCES
+Before the detailed matrix, list the 3-6 differences that matter most by
+dollar impact, in plain adjuster language -- one sentence each, no table.
+E.g. "Contractor included 2 more squares of shingles than the carrier
+estimate (+$340) -- likely a measurement discrepancy, verify roof area."
+This is what gets read on a phone screen in the field; the matrix below
+is for the detailed follow-up, not the first thing scanned.
+
 ## VARIANCE MATRIX
-A markdown table with columns: | Line Item | Xactimate Code | Est A Qty | Est B Qty | Est A Unit $ | Est B Unit $ | Variance $ | Flag |
+An 8-column table is unreadable on a phone. Use only: | Line Item | Est A $ | Est B $ | Variance | Flag |
+Put the Xactimate code in parentheses after the line item name, not its own column.
 Use 🔴 for major variance (>20%), 🟡 for moderate (5-20%), 🟢 for match.
 
 ## CODES REFERENCED
