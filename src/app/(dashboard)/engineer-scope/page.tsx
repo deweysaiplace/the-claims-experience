@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Loader2, Copy, Mail, Check, X, FileText, Plus, Camera, Shield, FileSpreadsheet } from 'lucide-react'
+import { Upload, Loader2, Copy, Mail, Check, X, FileText, Plus, Shield, FileSpreadsheet } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
+import CameraCapture from '@/components/CameraCapture'
 
 const WORKER_API = process.env.NEXT_PUBLIC_WORKER_API_URL || 'https://claims-worker.hijasond.workers.dev'
 
@@ -41,11 +42,6 @@ function MultiPageDropzone({
     setPreviews(urls)
     return () => urls.forEach((u) => { if (u) URL.revokeObjectURL(u) })
   }, [files])
-
-  const onCamera = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) onAdd(Array.from(e.target.files))
-    e.target.value = ''
-  }
 
   return (
     <div className="flex-1 min-w-0">
@@ -94,10 +90,11 @@ function MultiPageDropzone({
             <span className="text-slate-400 text-xs flex items-center gap-1"><Plus className="w-3 h-3" /> Add pages</span>
           )}
         </div>
-        <label className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition-colors flex items-center cursor-pointer select-none">
-          <Camera className="w-4 h-4" />
-          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={onCamera} />
-        </label>
+        <CameraCapture
+          onCapture={(file) => onAdd([file])}
+          label=""
+          className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition-colors flex items-center cursor-pointer select-none"
+        />
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import XactPhotoUpload from '@/components/xact/PhotoUpload'
 import XactResultsPanel from '@/components/xact/ResultsPanel'
+import CameraCapture from '@/components/CameraCapture'
 import { getTotalCodeCount, getAllCategories, getCodesByCategory } from '@/lib/code-matcher'
 import { compressImage, compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
@@ -281,11 +282,10 @@ export default function XactScopePage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    <label className="flex flex-col items-center justify-center gap-2 py-10 border-2 border-dashed border-slate-600 rounded-xl bg-slate-800/60 hover:bg-slate-800 hover:border-slate-500 text-slate-300 hover:text-white text-sm font-semibold cursor-pointer transition-colors select-none">
-                      <Camera className="w-7 h-7" />
-                      Take Photo
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { if (e.target.files?.[0]) { setQuickPhoto(e.target.files[0]); setQuickItems([]) } }} />
-                    </label>
+                    <CameraCapture
+                      onCapture={(file) => { setQuickPhoto(file); setQuickItems([]) }}
+                      className="flex flex-col items-center justify-center gap-2 py-10 border-2 border-dashed border-slate-600 rounded-xl bg-slate-800/60 hover:bg-slate-800 hover:border-slate-500 text-slate-300 hover:text-white text-sm font-semibold cursor-pointer transition-colors select-none w-full"
+                    />
                     <label className="flex flex-col items-center justify-center gap-2 py-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white text-sm font-medium cursor-pointer transition-colors select-none">
                       <Upload className="w-6 h-6" />
                       Choose Library

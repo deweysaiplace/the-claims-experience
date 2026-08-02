@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, GitCompare, Loader2, Copy, Mail, Check, FileImage, X, FileText, Plus, Camera, Smartphone } from 'lucide-react'
+import { Upload, GitCompare, Loader2, Copy, Mail, Check, FileImage, X, FileText, Plus, Smartphone } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
+import CameraCapture from '@/components/CameraCapture'
 
 function MultiPageDropzone({
   label,
@@ -39,11 +40,6 @@ function MultiPageDropzone({
     setPreviews(urls)
     return () => urls.forEach((u) => { if (u) URL.revokeObjectURL(u) })
   }, [files])
-
-  const onCamera = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) onAdd(Array.from(e.target.files))
-    e.target.value = ''
-  }
 
   return (
     <div className="flex-1 min-w-0">
@@ -94,23 +90,11 @@ function MultiPageDropzone({
             <span className="text-slate-400 text-xs flex items-center gap-1"><Plus className="w-3 h-3" /> Add pages</span>
           )}
         </div>
-        {/* CAMERA — implicit label, input nested inside */}
-        <label className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition-colors flex items-center cursor-pointer select-none">
-          <Camera className="w-4 h-4" />
-          {/* No `multiple`: Chrome on Android ignores `capture` when it is
-              present and opens the file picker instead of the camera. The
-              dropzone beside this handles multi-select. `capture="environment"`,
-              not a bare `capture` -- "user"/"environment" are the only valid
-              values per spec, and a bare attribute leaves which camera app
-              opens up to the browser's own guess. */}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={onCamera}
-          />
-        </label>
+        <CameraCapture
+          onCapture={(file) => onAdd([file])}
+          label=""
+          className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition-colors flex items-center cursor-pointer select-none"
+        />
       </div>
     </div>
   )

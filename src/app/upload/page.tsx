@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Camera, Upload, X, CheckCircle, Loader2, Shield, ImageIcon } from 'lucide-react'
+import { Upload, X, CheckCircle, Loader2, Shield, ImageIcon } from 'lucide-react'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
+import CameraCapture from '@/components/CameraCapture'
 
 export default function PhoneUploadPage() {
   const [files, setFiles] = useState<File[]>([])
@@ -14,7 +15,7 @@ export default function PhoneUploadPage() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
 
-  const addFiles = (incoming: FileList | null) => {
+  const addFiles = (incoming: FileList | File[] | null) => {
     if (!incoming) return
     const arr = Array.from(incoming).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf')
     const newPreviews = arr.map(f => f.type.startsWith('image/') ? URL.createObjectURL(f) : '')
@@ -159,14 +160,11 @@ export default function PhoneUploadPage() {
 
             {/* Add photos */}
             <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-slate-600 rounded-2xl bg-slate-900 hover:border-blue-500 cursor-pointer transition-colors">
-                <Camera className="w-8 h-8 text-slate-400" />
-                <span className="text-slate-300 text-sm font-medium">Take Photo</span>
-                {/* No `multiple`: Chrome on Android ignores `capture` when it is
-                    present and opens the file picker instead of the camera. The
-                    "Choose Files" button beside this handles multi-select. */}
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => addFiles(e.target.files)} />
-              </label>
+              <CameraCapture
+                onCapture={(file) => addFiles([file])}
+                label="Take Photo"
+                className="flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-slate-600 rounded-2xl bg-slate-900 hover:border-blue-500 cursor-pointer transition-colors text-slate-300 text-sm font-medium"
+              />
               <label className="flex flex-col items-center justify-center gap-2 py-8 rounded-2xl bg-slate-800 border border-slate-700 hover:bg-slate-700 cursor-pointer transition-colors">
                 <Upload className="w-8 h-8 text-slate-400" />
                 <span className="text-slate-300 text-sm font-medium">Choose Files</span>

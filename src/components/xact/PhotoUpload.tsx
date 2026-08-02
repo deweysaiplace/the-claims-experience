@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Upload, X, ImageIcon, Camera } from 'lucide-react'
+import { Upload, X, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import CameraCapture from '@/components/CameraCapture'
 
 interface PhotoUploadProps {
   onPhotosChange: (files: File[]) => void
@@ -47,18 +48,10 @@ export default function XactPhotoUpload({ onPhotosChange }: PhotoUploadProps) {
     <div className="space-y-3">
       {/* Two buttons side by side: camera (capture) + library */}
       <div className="grid grid-cols-2 gap-2">
-        {/* CAMERA — implicit label, input nested inside, no id/htmlFor needed */}
-        <label className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm cursor-pointer transition-colors select-none">
-          <Camera size={16} />
-          Take Photo
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => e.target.files && addFiles(e.target.files)}
-          />
-        </label>
+        <CameraCapture
+          onCapture={(file) => addFiles([file])}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm cursor-pointer transition-colors select-none w-full"
+        />
 
         {/* LIBRARY — implicit label, no id/htmlFor */}
         <label
