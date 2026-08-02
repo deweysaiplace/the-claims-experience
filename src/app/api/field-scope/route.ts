@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateWithFallback } from '@/lib/ai-fallback'
 import { verifyAndReplaceCodeSection } from '@/lib/xactimate-verify'
-import { XACTIMATE_CODES } from '@/data/xactimate-codes'
+import { getRelevantCodesText } from '@/lib/xactimate-codes-search'
 
 const FIELD_SCOPE_PROMPT = `You are an elite property insurance field adjuster AI assistant. You are analyzing inspection photos and field notes from a property damage claim.
 
@@ -77,10 +77,13 @@ export async function POST(request: NextRequest) {
     // The model must choose codes from a real reference, not its own training
     // data -- without this, it fabricates plausible-looking codes (e.g.
     // GUT5K, GTTRGD) that don't exist. verifyAndReplaceCodeSection below is a
-    // second, independent check against the fuller price list; this is the
-    // primary defense, since it's what stops the fabrication in the first
-    // place rather than just labeling it after the fact.
-    const fullPrompt = `${FIELD_SCOPE_PROMPT}\n${XACTIMATE_CODES}\n\nCLAIM CONTEXT:\n${contextLines}`
+    // second, independent check against the SAME real price list this prompt
+    // is grounded on (src/data/xactimate-codes.json) -- previously the prompt
+    // was grounded on a different, largely fabricated reference that barely
+    // overlapped with the verifier's data, which is why the warning had to be
+    // suppressed. Now both sides agree, so a real mismatch is a real signal.
+    const codeReference = getRelevantCodesText(`${causeOfLoss} ${transcript}`)
+    const fullPrompt = `${FIELD_SCOPE_PROMPT}\n${codeReference}\n\nCLAIM CONTEXT:\n${contextLines}`
 
     let result = ''
     let provider = 'gemini'

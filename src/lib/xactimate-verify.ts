@@ -73,15 +73,17 @@ export function verifyAndReplaceCodeSection(text: string): string {
   const { count } = getPriceListInfo()
   const unmatched = results.filter((r) => !r.found)
 
-  // The model is grounded against a different, smaller reference
-  // (xactimate-codes.ts) than this 2728-code extract checks against, and the
-  // two only partially overlap (e.g. gutters are SDGGNNI in one, SFGGRD in
-  // the other). Until those are unified into one dataset, an "unmatched"
-  // result here is normal on nearly every report, not a sign the model is
-  // fabricating -- showing it as a warning reads as "still broken" for
-  // codes that are actually real. Only show the positive confirmation.
+  // The prompt (src/lib/xactimate-codes-search.ts) and this verifier now both
+  // ground on the same real price list, so an unmatched code here is a real
+  // signal -- either a genuine fabrication or a code outside the relevant
+  // subset sent to the model -- not the systemic noise it used to be when
+  // the prompt was grounded on a different, largely fabricated reference.
   if (unmatched.length === 0) {
     return text.replace(sectionRegex, `## CODE CHECK\n✅ All codes matched your ${count}-code price list.\n`)
   }
-  return text.replace(sectionRegex, '')
+  const unmatchedList = unmatched.map((r) => `**${r.code}**`).join(', ')
+  return text.replace(
+    sectionRegex,
+    `## CODE CHECK\n⚠️ Not in your ${count}-code price list -- confirm before filing: ${unmatchedList}\n`
+  )
 }

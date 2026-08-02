@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateWithFallback } from '@/lib/ai-fallback'
-import { XACTIMATE_CODES } from '@/data/xactimate-codes'
-import { EXTRACTED_XACTIMATE_CODES } from '@/data/extracted-xactimate-codes'
+import { getRelevantCodesText } from '@/lib/xactimate-codes-search'
+import { EXTRACTED_GUIDELINES } from '@/data/extracted-guidelines'
 
-const SYSTEM_PROMPT = `You are an elite Xactimate estimating consultant and property insurance claims expert with 20+ years of experience. You have comprehensive knowledge of:
+function buildSystemPrompt(codeReference: string): string {
+  return `You are an elite Xactimate estimating consultant and property insurance claims expert with 20+ years of experience. You have comprehensive knowledge of:
 
 - All Xactimate category codes (RFG, DRY, FLR, FNC, CLN, WTR, STR, PLM, ELC, HVC, INT, EXT, MSN, INS, PTG, and all others)
-- Xactimate item codes and selector codes (e.g., RFG LAY, RFG TRN, DRY REM, DRY REP, CLN CONT, etc.)
 - Unit of measurement standards (SQ=100 SF, SF, LF, EA, HR, DY)
 - State Farm claim scoping guidelines and estimating best practices
 - O&P (Overhead & Profit) applicability rules
@@ -19,44 +19,58 @@ const SYSTEM_PROMPT = `You are an elite Xactimate estimating consultant and prop
 - Supplemental claim documentation standards
 
 When answering:
-1. Always check the REFERENCE CODES DATABASE below for the exact codes, descriptions, and units.
+1. Always check the REFERENCE CODES DATABASE below for the exact codes, descriptions, and units. Do not invent a code that isn't in it -- an adjuster will act on this.
 2. Always provide the exact Xactimate code(s) if applicable
 3. Specify the correct unit of measurement
-4. Note any common mistakes or contractor disputes around this item
-5. If the question involves O&P, depreciation, or coverage interpretation, explain both the adjuster and contractor perspectives
-6. Be direct and practical — this is a working tool for an active adjuster in the field
+4. If the question touches claim handling procedure (inspection triggers, documentation, SOPs), check the STATE FARM GUIDELINES below first -- it's the adjuster's own extracted procedure docs, more authoritative here than general industry knowledge
+5. Note any common mistakes or contractor disputes around this item
+6. If the question involves O&P, depreciation, or coverage interpretation, explain both the adjuster and contractor perspectives
+7. Be direct and practical — this is a working tool for an active adjuster in the field
 
 Keep answers concise but complete. Use bullet points for multiple codes or options.
 
-REFERENCE CODES DATABASE:
-${XACTIMATE_CODES}
+${codeReference}
 
 =========================================
 
-ADDITIONAL ADJUSTER EXTRACTED CODES:
-${EXTRACTED_XACTIMATE_CODES}
+STATE FARM GUIDELINES:
+${EXTRACTED_GUIDELINES}
 `
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { question, history } = await request.json() as {
-      question: string
-      history?: Array<{ role: string; content: string }>
-    }
+    const formData = await request.formData()
+    const question = formData.get('question') as string || ''
+    const historyRaw = formData.get('history') as string || '[]'
+    const photos = formData.getAll('photos') as File[]
+    const history = JSON.parse(historyRaw) as Array<{ role: string; content: string }>
 
-    if (!question?.trim()) {
+    if (!question.trim() && photos.length === 0) {
       return NextResponse.json({ error: 'Question is required' }, { status: 400 })
     }
 
     // generateWithFallback takes a single prompt, so prior turns are flattened
     // into it rather than passed as a provider-specific message array.
-    const transcript = (history ?? [])
+    const transcript = history
       .map((h) => `${h.role === 'model' ? 'Assistant' : 'User'}: ${h.content}`)
       .join('\n\n')
 
     const prompt = transcript ? `${transcript}\n\nUser: ${question}` : question
 
-    const { text, provider } = await generateWithFallback(prompt, SYSTEM_PROMPT)
+    const base64Images = await Promise.all(
+      photos.map(async (photo) => {
+        const bytes = await photo.arrayBuffer()
+        return Buffer.from(bytes).toString('base64')
+      })
+    )
+
+    // Recent turns count toward relevance too, so a follow-up like "what about
+    // the ridge cap" after a roofing question still pulls roofing codes.
+    const recentContext = [question, ...history.slice(-4).map((h) => h.content)].join(' ')
+    const systemPrompt = buildSystemPrompt(getRelevantCodesText(recentContext))
+
+    const { text, provider } = await generateWithFallback(prompt, systemPrompt, base64Images)
     return NextResponse.json({ success: true, answer: text, provider })
   } catch (err: unknown) {
     // The provider errors are long JSON blobs that used to render verbatim in
