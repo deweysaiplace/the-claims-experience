@@ -36,11 +36,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const images = formData.getAll('images') as File[]
     const notes = (formData.get('notes') as string) || ''
-    const transcription = (formData.get('transcription') as string) || ''
 
-    const allNotes = [notes, transcription].filter(Boolean).join('\n')
-
-    if (images.length === 0 && !allNotes.trim()) {
+    if (images.length === 0 && !notes.trim()) {
       return NextResponse.json({ error: 'Please provide images or notes' }, { status: 400 })
     }
 
@@ -63,7 +60,7 @@ export async function POST(request: NextRequest) {
     let materials: string[] = []
     let damageTypes: string[] = []
 
-    const userPromptText = `Adjuster Notes: ${allNotes || 'None provided.'}`
+    const userPromptText = `Adjuster Notes: ${notes || 'None provided.'}`
 
     try {
       console.log(`Xact Analyze: Analyzing with Gemini...`)
@@ -144,7 +141,7 @@ export async function POST(request: NextRequest) {
         .replace('{MATERIALS}', materials.join(', ') || 'not specified')
         .replace('{DAMAGE_TYPES}', damageTypes.join(', ') || 'not specified')
         .replace('{LINE_ITEMS}', matchResult.matched.map((m) => `${m.code} - ${m.description}`).join('; ') || 'none matched')
-        .replace('{NOTES}', allNotes || 'none')
+        .replace('{NOTES}', notes || 'none')
         
       try {
         const genai = getGenAI()

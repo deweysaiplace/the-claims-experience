@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import {
-  ClipboardList, Loader2, ScanSearch, Info, Mic, Camera, FileText,
+  ClipboardList, Loader2, ScanSearch, Info, Camera, FileText,
   RotateCcw, Sparkles, Upload, Search, Filter, Shield, Send,
 } from 'lucide-react'
 import XactPhotoUpload from '@/components/xact/PhotoUpload'
-import XactVoiceRecorder from '@/components/xact/VoiceRecorder'
 import XactResultsPanel from '@/components/xact/ResultsPanel'
 import { getTotalCodeCount, getAllCategories, getCodesByCategory } from '@/lib/code-matcher'
 import { compressImage, compressImages } from '@/lib/compress-image'
@@ -48,7 +47,6 @@ export default function XactScopePage() {
   // Finder — multi
   const [photos, setPhotos] = useState<File[]>([])
   const [notes, setNotes] = useState('')
-  const [transcription, setTranscription] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState('')
@@ -92,7 +90,7 @@ export default function XactScopePage() {
       .catch(() => {})
   }, [tab, policyText])
 
-  const canAnalyze = photos.length > 0 || notes.trim() || transcription.trim()
+  const canAnalyze = photos.length > 0 || notes.trim()
 
   const handleAnalyze = async () => {
     if (!canAnalyze) return
@@ -103,7 +101,6 @@ export default function XactScopePage() {
       const fd = new FormData()
       prepared.forEach(f => fd.append('images', f))
       fd.append('notes', notes)
-      fd.append('transcription', transcription)
       const res = await fetch('/api/xact-analyze', { method: 'POST', body: fd })
       const data = await readJsonOrThrow(res)
       if (!res.ok) throw new Error(data.error || 'Analysis failed')
@@ -114,7 +111,7 @@ export default function XactScopePage() {
   }
 
   const handleReset = () => {
-    setPhotos([]); setNotes(''); setTranscription(''); setResult(null); setError('')
+    setPhotos([]); setNotes(''); setResult(null); setError('')
   }
 
   const handleQuickAnalyze = async () => {
@@ -239,13 +236,6 @@ export default function XactScopePage() {
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                   <h2 className="font-semibold text-slate-200 mb-3 flex items-center gap-2 text-sm">
                     <span className="w-5 h-5 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                    <Mic size={13} className="text-slate-500" /> Voice Note <span className="text-xs text-slate-500 font-normal">(Whisper)</span>
-                  </h2>
-                  <XactVoiceRecorder onTranscription={setTranscription} />
-                </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                  <h2 className="font-semibold text-slate-200 mb-3 flex items-center gap-2 text-sm">
-                    <span className="w-5 h-5 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-full flex items-center justify-center text-xs font-bold">3</span>
                     <FileText size={13} className="text-slate-500" /> Typed Notes <span className="text-xs text-slate-500 font-normal">(optional)</span>
                   </h2>
                   <textarea
@@ -273,7 +263,7 @@ export default function XactScopePage() {
                   )}
                 </div>
                 {error && <div className="bg-red-600/10 border border-red-600/20 rounded-xl p-4 text-sm text-red-400"><strong>Error:</strong> {error}</div>}
-                {!canAnalyze && !loading && <p className="text-center text-xs text-slate-600">Add at least one photo, voice note, or typed note to begin</p>}
+                {!canAnalyze && !loading && <p className="text-center text-xs text-slate-600">Add at least one photo or typed note to begin</p>}
               </div>
               {result && <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5"><XactResultsPanel result={result} /></div>}
             </div>
