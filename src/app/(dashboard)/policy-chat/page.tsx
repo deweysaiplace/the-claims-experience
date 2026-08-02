@@ -30,6 +30,9 @@ export default function PolicyChatPage() {
   const [isListening, setIsListening] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
+  // What the input held before this listening session started -- new speech
+  // is combined onto this, not appended call-by-call. See onresult comment.
+  const micBaselineRef = useRef('')
 
   useEffect(() => {
     const SpeechAPI = typeof window !== 'undefined'
@@ -41,14 +44,30 @@ export default function PolicyChatPage() {
     rec.interimResults = false
     rec.lang = 'en-US'
     rec.onresult = (e: any) => {
-      let newText = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      // Rebuild from index 0 every time -- on this device, each new final
+      // result isn't the same index being revised, it's a NEW index whose
+      // transcript already contains the whole utterance so far ("I" / "I
+      // was" / "I was going" ...). Using event.resultIndex and appending
+      // each delta duplicates the growing prefix. Fix: when a final chunk
+      // starts with the previous chunk, it's a fuller version of the same
+      // utterance -- replace, don't append.
+      const finalChunks: string[] = []
+      for (let i = 0; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
-          newText += e.results[i][0].transcript
+          const chunk = e.results[i][0].transcript.trim()
+          if (!chunk) continue
+          const prev = finalChunks[finalChunks.length - 1]
+          if (prev && chunk.toLowerCase().startsWith(prev.toLowerCase())) {
+            finalChunks[finalChunks.length - 1] = chunk
+          } else {
+            finalChunks.push(chunk)
+          }
         }
       }
-      if (newText) {
-        setInput((prev) => (prev ? prev + ' ' + newText.trim() : newText.trim()))
+      const sessionFinal = finalChunks.join(' ')
+      if (sessionFinal) {
+        const base = micBaselineRef.current
+        setInput(base ? `${base} ${sessionFinal}`.trim() : sessionFinal)
       }
     }
     rec.onend = () => setIsListening(false)
@@ -61,6 +80,7 @@ export default function PolicyChatPage() {
     if (isListening) {
       recognitionRef.current.stop()
     } else {
+      micBaselineRef.current = input
       recognitionRef.current.start()
       setIsListening(true)
     }

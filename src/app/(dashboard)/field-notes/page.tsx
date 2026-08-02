@@ -96,17 +96,31 @@ export default function FieldNotesPage() {
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       // Rebuild from index 0 every time -- not from event.resultIndex, and not
       // appended to what we had. See preSessionTranscriptRef comment above.
-      let sessionFinal = ''
+      //
+      // On this device, each new final result isn't the same index being
+      // revised -- it's a NEW index whose transcript already contains the
+      // whole utterance so far ("I" / "I was" / "I was going" ...). Naively
+      // concatenating every final entry duplicates the growing prefix. Fix:
+      // when a final chunk starts with the previous chunk, it's a fuller
+      // version of the same utterance -- replace, don't append.
+      const finalChunks: string[] = []
       let currentInterim = ''
       for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          sessionFinal += event.results[i][0].transcript + ' '
+          const chunk = event.results[i][0].transcript.trim()
+          if (!chunk) continue
+          const prev = finalChunks[finalChunks.length - 1]
+          if (prev && chunk.toLowerCase().startsWith(prev.toLowerCase())) {
+            finalChunks[finalChunks.length - 1] = chunk
+          } else {
+            finalChunks.push(chunk)
+          }
         } else {
           currentInterim += event.results[i][0].transcript
         }
       }
 
-      const combined = (preSessionTranscriptRef.current + ' ' + sessionFinal).trim()
+      const combined = (preSessionTranscriptRef.current + ' ' + finalChunks.join(' ')).trim()
       lastCommittedRef.current = combined
       setLocations(prev => prev.map(loc =>
         loc.id === activeLocRef.current ? { ...loc, transcript: combined } : loc

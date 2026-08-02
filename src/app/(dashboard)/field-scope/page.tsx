@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
 import { getFieldLocation, formatLocation, mapsUrl, type FieldLocation } from '@/lib/geolocation'
+import CameraCapture from '@/components/CameraCapture'
 
 
 
@@ -113,17 +114,31 @@ export default function FieldScopePage() {
     recognition.onresult = (event: any) => {
       // Rebuild from index 0 every time -- not from event.resultIndex, and
       // not appended to what we had. See preSessionTextRef comment above.
-      let sessionFinal = ''
+      //
+      // On this device, each new final result isn't the same index being
+      // revised -- it's a NEW index whose transcript already contains the
+      // whole utterance so far ("I" / "I was" / "I was going" ...). Naively
+      // concatenating every final entry duplicates the growing prefix. Fix:
+      // when a final chunk starts with the previous chunk, it's a fuller
+      // version of the same utterance -- replace, don't append.
+      const finalChunks: string[] = []
       let interim = ''
       for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          sessionFinal += event.results[i][0].transcript + ' '
+          const chunk = event.results[i][0].transcript.trim()
+          if (!chunk) continue
+          const prev = finalChunks[finalChunks.length - 1]
+          if (prev && chunk.toLowerCase().startsWith(prev.toLowerCase())) {
+            finalChunks[finalChunks.length - 1] = chunk
+          } else {
+            finalChunks.push(chunk)
+          }
         } else {
           interim += event.results[i][0].transcript
         }
       }
 
-      const combined = (preSessionTextRef.current + ' ' + sessionFinal).trim()
+      const combined = (preSessionTextRef.current + ' ' + finalChunks.join(' ')).trim()
       lastCommittedRef.current = combined
       transcriptRef.current = combined
       setTranscript(combined + (interim ? ` [${interim}]` : ''))
@@ -186,13 +201,6 @@ export default function FieldScopePage() {
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // Camera capture
-  const onCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files) setPhotos((prev) => [...prev, ...Array.from(files)])
-    e.target.value = ''
   }
 
   // Submit
@@ -440,20 +448,10 @@ export default function FieldScopePage() {
 
               {/* Add photos buttons */}
               <div className="flex gap-2">
-                {/* CAMERA — implicit label, input nested inside */}
-                <label className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm cursor-pointer transition-colors select-none">
-                  <Camera className="w-4 h-4" /> Take Photo
-                  {/* No `multiple`: Chrome on Android ignores `capture` when it
-                      is present and opens the file picker instead of the camera.
-                      The Upload button next to this handles multi-select. */}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={onCameraCapture}
-                  />
-                </label>
+                <CameraCapture
+                  onCapture={(file) => setPhotos((prev) => [...prev, file])}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm cursor-pointer transition-colors select-none"
+                />
                 <div {...getRootProps()}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-sm font-semibold cursor-pointer transition-all
                     ${isDragActive ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'}`}>
@@ -546,7 +544,7 @@ export default function FieldScopePage() {
                 </div>
                 {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
               </CardHeader>
-              <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <CardContent className="pt-0 max-h-[calc(100dvh-200px)] overflow-y-auto">
                 <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
                   <ReactMarkdown>{result}</ReactMarkdown>
                 </div>
