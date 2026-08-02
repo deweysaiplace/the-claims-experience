@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { BookOpen, Send, Loader2, Trash2 } from 'lucide-react'
+import { BookOpen, Send, Loader2, Trash2, Camera, ImagePlus, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
+import CameraCapture from '@/components/CameraCapture'
+import { compressImages } from '@/lib/compress-image'
 
 interface Message {
   role: 'user' | 'model'
@@ -24,28 +26,50 @@ export default function CodeReferencePage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [photos, setPhotos] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  useEffect(() => {
+    const urls = photos.map((p) => URL.createObjectURL(p))
+    setPreviews(urls)
+    return () => urls.forEach((u) => URL.revokeObjectURL(u))
+  }, [photos])
+
   const sendMessage = async (question: string) => {
-    if (!question.trim() || loading) return
     const q = question.trim()
+    if ((!q && photos.length === 0) || loading) return
+    // A photo with no typed question is a valid request on its own -- "point
+    // the camera at damage and ask what it is" -- so fall back to a default
+    // question instead of blocking send.
+    const effectiveQuestion = q || 'What is the standard Xactimate procedure and code for the damage shown in this photo?'
+    const attachedPhotos = photos
     setInput('')
+    setPhotos([])
     setError('')
 
     const history = messages.map((m) => ({ role: m.role, content: m.content }))
-    setMessages((prev) => [...prev, { role: 'user', content: q }])
+    setMessages((prev) => [...prev, {
+      role: 'user',
+      content: effectiveQuestion + (attachedPhotos.length ? `\n\n_${attachedPhotos.length} photo${attachedPhotos.length > 1 ? 's' : ''} attached_` : ''),
+    }])
     setLoading(true)
 
     try {
-      const res = await fetch('/api/code-reference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, history }),
-      })
+      const form = new FormData()
+      form.append('question', effectiveQuestion)
+      form.append('history', JSON.stringify(history))
+      if (attachedPhotos.length) {
+        const prepared = await compressImages(attachedPhotos)
+        prepared.forEach((p) => form.append('photos', p))
+      }
+
+      const res = await fetch('/api/code-reference', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setMessages((prev) => [...prev, { role: 'model', content: data.answer }])
@@ -127,7 +151,47 @@ export default function CodeReferencePage() {
 
         <CardContent className="border-t border-slate-800 p-3">
           {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
+          {previews.length > 0 && (
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {previews.map((src, i) => (
+                <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-700 group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={`Attached ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-0 right-0 p-1 bg-black/70 text-slate-300 hover:text-red-400"
+                    title="Remove photo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2">
+            <CameraCapture
+              onCapture={(file) => setPhotos((prev) => [...prev, file])}
+              label=""
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+            />
+            <button
+              onClick={() => galleryInputRef.current?.click()}
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              title="Attach photo from library"
+            >
+              <ImagePlus className="w-4 h-4" />
+            </button>
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) setPhotos((prev) => [...prev, ...Array.from(e.target.files!)])
+                e.target.value = ''
+              }}
+            />
             <input
               type="text"
               value={input}
@@ -148,7 +212,7 @@ export default function CodeReferencePage() {
             )}
             <button
               onClick={() => sendMessage(input)}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && photos.length === 0)}
               className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white transition-colors"
             >
               <Send className="w-4 h-4" />
