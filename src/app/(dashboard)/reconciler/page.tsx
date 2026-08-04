@@ -108,6 +108,20 @@ export default function ReconcilerPage() {
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Multi-page reconciliation can legitimately take up to ~110s (Claude gets
+  // an 85s primary window, backups race for another 25s). A bare spinner
+  // with no time signal reads as "stuck" well before that -- this gives the
+  // adjuster something to judge against instead of guessing whether to wait
+  // it out or bail.
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [qualityWarning, setQualityWarning] = useState('')
+
+  useEffect(() => {
+    if (!loading) return
+    setElapsedSeconds(0)
+    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
+    return () => clearInterval(interval)
+  }, [loading])
   const [copied, setCopied] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
@@ -154,7 +168,6 @@ export default function ReconcilerPage() {
       setError('Please upload at least one page for each estimate.')
       return
     }
-    setLoading(true)
     setError('')
     setResult('')
 
@@ -169,6 +182,29 @@ export default function ReconcilerPage() {
         compressImages(pagesA, totalPages),
         compressImages(pagesB, totalPages),
       ])
+
+      // A blurry/low-detail capture compresses to a suspiciously small file
+      // -- this is the exact signal that flagged a real blurry-camera bug
+      // tonight (22-25KB vs a normal 150-400KB for a legible document
+      // photo). Catching it here saves a wasted 90+ second AI round-trip on
+      // a photo that's already known to be unreadable. Soft warning, not a
+      // hard block -- tapping Reconcile again proceeds anyway.
+      if (!qualityWarning) {
+        const MIN_KB = 40
+        const tooSmall = [
+          ...preparedA.map((f, i) => ({ label: `Estimate A, page ${i + 1}`, kb: f.size / 1024 })),
+          ...preparedB.map((f, i) => ({ label: `Estimate B, page ${i + 1}`, kb: f.size / 1024 })),
+        ].filter((f) => f.kb < MIN_KB)
+
+        if (tooSmall.length > 0) {
+          setQualityWarning(
+            `${tooSmall.map((f) => f.label).join(', ')} look unusually low quality — may be too blurry to read. Tap Reconcile Estimates again to proceed anyway, or retake those photos.`
+          )
+          return
+        }
+      }
+      setQualityWarning('')
+      setLoading(true)
 
       const form = new FormData()
       preparedA.forEach((f) => form.append('estimateA', f))
@@ -329,28 +365,34 @@ export default function ReconcilerPage() {
             <MultiPageDropzone
               label={`Estimate A — Carrier (${pagesA.length} pg)`}
               files={pagesA}
-              onAdd={(f) => setPagesA((prev) => [...prev, ...f])}
-              onRemove={(i) => setPagesA((prev) => prev.filter((_, idx) => idx !== i))}
+              onAdd={(f) => { setPagesA((prev) => [...prev, ...f]); setQualityWarning('') }}
+              onRemove={(i) => { setPagesA((prev) => prev.filter((_, idx) => idx !== i)); setQualityWarning('') }}
             />
             <MultiPageDropzone
               label={`Estimate B — Contractor (${pagesB.length} pg)`}
               files={pagesB}
-              onAdd={(f) => setPagesB((prev) => [...prev, ...f])}
-              onRemove={(i) => setPagesB((prev) => prev.filter((_, idx) => idx !== i))}
+              onAdd={(f) => { setPagesB((prev) => [...prev, ...f]); setQualityWarning('') }}
+              onRemove={(i) => { setPagesB((prev) => prev.filter((_, idx) => idx !== i)); setQualityWarning('') }}
             />
           </div>
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
+          {qualityWarning && <p className="text-amber-400 text-sm">{qualityWarning}</p>}
 
           <button onClick={handleAnalyze}
             disabled={loading || pagesA.length === 0 || pagesB.length === 0}
             className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
             {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing {pagesA.length + pagesB.length} pages…</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing {pagesA.length + pagesB.length} pages… ({elapsedSeconds}s)</>
             ) : (
               <><GitCompare className="w-4 h-4" /> Reconcile Estimates ({pagesA.length + pagesB.length} pages)</>
             )}
           </button>
+          {loading && (
+            <p className="text-center text-xs text-slate-500">
+              Multi-page reconciliation can take up to a minute or two — this is still working, not stuck.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -380,7 +422,7 @@ export default function ReconcilerPage() {
             {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="prose prose-invert prose-sm max-w-none prose-table:text-xs prose-headings:text-slate-200 prose-p:text-slate-300 prose-li:text-slate-300">
+            <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-blue-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
               <ReactMarkdown>{result}</ReactMarkdown>
             </div>
           </CardContent>

@@ -4,6 +4,7 @@ export const maxDuration = 120 // seconds — image encoding + Gemini can be slo
 import { generateWithFallback } from '@/lib/ai-fallback'
 import { scrubPii } from '@/utils/sanitizer'
 import { verifyAndReplaceCodeSection } from '@/lib/xactimate-verify'
+import { getRelevantCodesText } from '@/lib/xactimate-codes-search'
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +43,13 @@ export async function POST(request: NextRequest) {
       }))
     )
 
+    // No notes/cause-of-loss text signal available here (unlike Field Scope),
+    // so an empty query falls back to a broad, category-balanced sample --
+    // the right default when the claim type isn't known in advance. See
+    // xactimate-codes-search.ts's round-robin fallback for why this doesn't
+    // just dump the single biggest category.
+    const codeReference = getRelevantCodesText('')
+
     const systemPrompt = `You are an elite property insurance claims estimating expert with deep knowledge of Xactimate line item codes, CSI divisions, and standard scoping methodology. You are analyzing two field-photographed estimates to identify discrepancies.
 
 Date of Review: ${today}
@@ -56,7 +64,10 @@ IMPORTANT RULES:
 - Identify items present in one estimate but missing in the other.
 - Flag potential double-billing (e.g., setup/cleanup charged per room AND as a whole).
 - All amounts should be compared as numeric values.
-- Respond with PLAIN MARKDOWN ONLY. Do not wrap the response in an HTML document, a <!DOCTYPE> declaration, or <html>/<head>/<body> tags, and do not use markdown code fences around the whole answer. The response is rendered directly as Markdown — any HTML wrapper will display as broken, unreadable text to the adjuster instead of a formatted report.`
+- When citing a Xactimate code in the CODES REFERENCED section, match it to the exact code from the REFERENCE CODES list below if the code you observed on the photographed estimate is in it. Do not invent or guess a code that isn't in the list -- an adjuster will act on this.
+- Respond with PLAIN MARKDOWN ONLY. Do not wrap the response in an HTML document, a <!DOCTYPE> declaration, or <html>/<head>/<body> tags, and do not use markdown code fences around the whole answer. The response is rendered directly as Markdown — any HTML wrapper will display as broken, unreadable text to the adjuster instead of a formatted report.
+
+${codeReference}`
 
     const userPrompt = `Please analyze these two property damage estimates.
 The first ${filesA.length} image(s) are Estimate A (Carrier Estimate).
@@ -106,13 +117,18 @@ Internal claim file note documenting the estimate review, suitable for direct en
 
     try {
       console.log(`Attempting reconciliation: ${filesA.length} vs ${filesB.length} pages...`)
-      
+      console.log('Incoming file sizes (KB):', [...filesA, ...filesB].map((f) => (f.size / 1024).toFixed(0)).join(', '))
+
       const allFiles = [...filesA, ...filesB]
       const base64Images = await Promise.all(
         allFiles.map(async (f) => await toBase64(f))
       )
+      console.log('Base64 payload sizes (KB):', base64Images.map((b) => (b.length / 1024).toFixed(0)).join(', '),
+        '— total', (base64Images.reduce((sum, b) => sum + b.length, 0) / 1024).toFixed(0), 'KB')
 
+      const genStart = Date.now()
       const response = await generateWithFallback(userPrompt, systemPrompt, base64Images)
+      console.log(`generateWithFallback took ${Date.now() - genStart}ms, provider: ${response.provider}`)
       text = response.text
       provider = response.provider
 
