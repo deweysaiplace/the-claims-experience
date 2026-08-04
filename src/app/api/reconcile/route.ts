@@ -62,7 +62,22 @@ IMPORTANT RULES:
   variance that's actually just a unit mismatch.
 - Flag every line item that differs in quantity, unit price, or code, using
   the matching and unit rules above.
-- Flag potential double-billing (e.g., setup/cleanup charged per room AND as a whole).
+- Flag potential double-billing WITHIN EACH ESTIMATE SEPARATELY, not just
+  differences between them -- a redundant charge in one estimate is a real
+  finding even if the other estimate doesn't have it. Specifically check for:
+  - A removal/tear-out line item that already includes disposal, with a
+    separate "haul debris" or disposal line charged on top of it for the
+    same material.
+  - A flooring or roofing removal line that already includes underlayment
+    removal (per its own line item description), with a separate
+    underlayment removal line charged for the same area.
+  - Setup/cleanup or mobilization charged per room AND again as a whole-job
+    line item.
+  - O&P (overhead and profit) applied to job-related fixed costs -- dumpster
+    rental, temporary fencing, portable restroom, temporary power -- instead
+    of only to labor and materials. These should be flat line items, not
+    O&P-bearing ones; O&P stacked on top of them is a common real overcharge
+    pattern and a real audit trigger.
 - All amounts should be compared as numeric values.
 - The codes you cite in the CODES REFERENCED section must be transcribed
   EXACTLY as printed on the photographed estimate -- you are reading real
@@ -104,7 +119,9 @@ This section is parsed by code, not read by the adjuster, so it must contain ONL
 List items present in Contractor estimate (B) but absent from Carrier estimate (A), and vice versa.
 
 ## DOUBLE-BILLING FLAGS
-Any items that appear to charge twice for the same scope.
+Any items that appear to charge twice for the same scope -- check each
+estimate individually as well as against each other. Say which estimate
+(A, B, or both) each flag applies to.
 
 ## SUMMARY
 - Total Est A: $X,XXX
