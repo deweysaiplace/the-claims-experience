@@ -105,11 +105,11 @@ export default function EngineerScopePage() {
   const [files, setFiles] = useState<File[]>([])
   const [claimRef, setClaimRef] = useState('')
   const [address, setAddress] = useState('')
-  const [insuredLastName, setInsuredLastName] = useState('')
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
   const elapsedSeconds = useElapsedSeconds(loading)
   const [error, setError] = useState('')
+  const [qualityWarning, setQualityWarning] = useState('')
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<'policy' | 'scope' | 'note'>('policy')
   const [saving, setSaving] = useState(false)
@@ -132,7 +132,7 @@ export default function EngineerScopePage() {
         body: JSON.stringify({
           claimRef,
           address,
-          adjusterName: insuredLastName || null,
+          adjusterName: null,
           content,
           type: 'engineering_review'
         })
@@ -154,19 +154,57 @@ export default function EngineerScopePage() {
       setError('Please upload at least one page of the engineering report.')
       return
     }
-    setLoading(true)
     setError('')
     setResult('')
 
     try {
       const prepared = await compressImages(files)
+
+      // Same signal that flagged a real blurry-camera bug on Reconciler
+      // tonight: a low-detail capture compresses to a suspiciously small
+      // file. Soft warning, not a hard block -- tapping Analyze again
+      // proceeds anyway. PDFs pass through compressImages unchanged (not
+      // image files), so only check actual images here.
+      if (!qualityWarning) {
+        const MIN_KB = 40
+        const tooSmall = prepared
+          .map((f, i) => ({ label: `Page ${i + 1}`, kb: f.size / 1024, isImage: f.type.startsWith('image/') }))
+          .filter((f) => f.isImage && f.kb < MIN_KB)
+
+        if (tooSmall.length > 0) {
+          setQualityWarning(
+            `${tooSmall.map((f) => f.label).join(', ')} look unusually low quality — may be too blurry to read. Tap Generate Aligned Scope again to proceed anyway, or retake those photos.`
+          )
+          return
+        }
+      }
+      setQualityWarning('')
+      setLoading(true)
+
       const form = new FormData()
       prepared.forEach((f) => form.append('report', f))
       form.append('claimRef', claimRef)
       form.append('address', address)
 
+      // Unlike every AI route in this app (see ai-fallback.ts), a call to
+      // the external Cloudflare Worker has no server-side timeout wrapper --
+      // if the worker hangs, this fetch would otherwise wait indefinitely
+      // with no resolution. AbortController gives it a real ceiling and a
+      // clear error instead of a spinner that never ends.
       const apiUrl = `${WORKER_API}/engineer-scope`
-      const res = await fetch(apiUrl, { method: 'POST', body: form })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 120_000)
+      let res: Response
+      try {
+        res = await fetch(apiUrl, { method: 'POST', body: form, signal: controller.signal })
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw new Error('The engineering report analysis timed out after 2 minutes. Try again, or with fewer pages.')
+        }
+        throw err
+      } finally {
+        clearTimeout(timeoutId)
+      }
       const data = await readJsonOrThrow(res)
       setResult(data.result)
       // Save immediately rather than waiting on a manual click -- this is the
@@ -232,7 +270,7 @@ export default function EngineerScopePage() {
 
       <Card className="bg-slate-900 border-slate-800">
         <CardContent className="p-5 space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
                 Claim Reference
@@ -241,13 +279,6 @@ export default function EngineerScopePage() {
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Insured Last Name
-              </label>
-              <input type="text" value={insuredLastName} onChange={(e) => setInsuredLastName(e.target.value)} placeholder="e.g. Smith"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500" />
-            </div>
-            <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
                 Property Address
               </label>
@@ -259,11 +290,12 @@ export default function EngineerScopePage() {
           <MultiPageDropzone
             label={`Engineer Report Pages (${files.length})`}
             files={files}
-            onAdd={(f) => setFiles((prev) => [...prev, ...f])}
-            onRemove={(i) => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+            onAdd={(f) => { setFiles((prev) => [...prev, ...f]); setQualityWarning('') }}
+            onRemove={(i) => { setFiles((prev) => prev.filter((_, idx) => idx !== i)); setQualityWarning('') }}
           />
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
+          {qualityWarning && <p className="text-amber-400 text-sm">{qualityWarning}</p>}
 
           <button onClick={handleAnalyze}
             disabled={loading || files.length === 0}
