@@ -3,6 +3,12 @@ import { getGenAI, flashModel } from '@/lib/gemini'
 import { getGrok, grokModel } from '@/lib/grok'
 import { matchLabelsToCode } from '@/lib/code-matcher'
 
+// This route makes up to two sequential AI calls (analysis, then summary)
+// against up to 5 images. No explicit maxDuration meant it fell back to
+// Vercel's shorter platform default instead of real headroom -- same gap
+// found and fixed on five other AI routes tonight (see ai-fallback.ts).
+export const maxDuration = 120
+
 const SYSTEM_PROMPT = `You are an expert insurance property damage adjuster assistant.
 Analyze the provided property damage photo(s) and/or adjuster notes. 
 
