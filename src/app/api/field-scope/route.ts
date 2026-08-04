@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateWithFallback } from '@/lib/ai-fallback'
 import { verifyAndReplaceCodeSection } from '@/lib/xactimate-verify'
 import { getRelevantCodesText } from '@/lib/xactimate-codes-search'
+import { scrubPii } from '@/utils/sanitizer'
 
 // Without this, the route falls back to Vercel's platform default duration,
 // which can be shorter than generateWithFallback's own ~90s worst-case
@@ -12,6 +13,11 @@ export const maxDuration = 120
 const FIELD_SCOPE_PROMPT = `You are an elite property insurance field adjuster AI assistant. You are analyzing inspection photos and field notes from a property damage claim.
 
 Your job is to produce THREE outputs from the provided photos and/or voice transcript:
+
+If any photo is too blurry, low-resolution, glare-affected, or too dark to
+assess reliably, say so explicitly in the Damage Assessment for that photo
+instead of silently guessing or skipping it -- the adjuster needs to know
+to retake it, not assume the report is complete when it isn't.
 
 ## 1. DAMAGE ASSESSMENT
 For each photo, describe:
@@ -45,6 +51,12 @@ Write a professional claim file narrative suitable for direct entry into the cla
 - Cause of loss assessment
 - Recommended scope of repairs
 - Any concerns or items requiring follow-up
+
+IMPORTANT -- PRIVACY: Never state the insured's, claimant's, or any other
+individual's proper name anywhere in your response, even if a name appears
+in the field notes transcript below. Refer to them generically as "the
+insured" or "the homeowner" instead. This applies to the whole response,
+not just the narrative section.
 `
 
 export async function POST(request: NextRequest) {
@@ -70,6 +82,12 @@ export async function POST(request: NextRequest) {
       year: 'numeric', month: 'long', day: 'numeric',
     })
 
+    // Secondary layer behind the prompt's own "never use a proper name"
+    // instruction above -- this catches the narrow case (labeled "Insured:
+    // Name" style mentions) before the transcript even reaches the model,
+    // in case the instruction alone isn't followed.
+    const scrubbedTranscript = transcript ? scrubPii(transcript).scrubbed : transcript
+
     const contextLines = [
       `Date of Inspection: ${today}`,
       claimRef ? `Claim Reference: ${claimRef}` : null,
@@ -77,7 +95,7 @@ export async function POST(request: NextRequest) {
       location ? `GPS at Inspection: ${location}` : null,
       adjusterName ? `Adjuster: ${adjusterName}` : null,
       causeOfLoss ? `Cause of Loss: ${causeOfLoss}` : null,
-      transcript ? `\nFIELD NOTES TRANSCRIPT:\n${transcript}` : null,
+      scrubbedTranscript ? `\nFIELD NOTES TRANSCRIPT:\n${scrubbedTranscript}` : null,
     ].filter(Boolean).join('\n')
 
     // The model must choose codes from a real reference, not its own training
@@ -92,7 +110,9 @@ export async function POST(request: NextRequest) {
     const fullPrompt = `${FIELD_SCOPE_PROMPT}\n${codeReference}\n\nCLAIM CONTEXT:\n${contextLines}`
 
     let result = ''
-    let provider = 'gemini'
+    // Always reassigned from response.provider before being read (the catch
+    // block re-throws without touching it) -- no meaningful default exists.
+    let provider = ''
 
     try {
       console.log(`Field Scope: Analyzing ${photos.length} photos + transcript...`)
