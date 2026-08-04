@@ -206,7 +206,7 @@ export default function PortalPage() {
               </div>
             </CardHeader>
             <CardContent className="p-6 overflow-y-auto">
-              <div className="text-slate-200 prose prose-invert prose-sm max-w-none prose-table:text-xs prose-headings:text-emerald-400 prose-p:text-slate-300 prose-li:text-slate-300">
+              <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700">
                 <ReactMarkdown>{selectedReport.content}</ReactMarkdown>
               </div>
             </CardContent>

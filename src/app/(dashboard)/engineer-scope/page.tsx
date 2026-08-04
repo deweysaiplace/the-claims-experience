@@ -349,7 +349,7 @@ export default function EngineerScopePage() {
               {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="prose prose-invert prose-sm max-w-none prose-table:text-xs prose-headings:text-slate-200 prose-p:text-slate-300 prose-li:text-slate-300">
+              <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-blue-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
                 {activeTab === 'policy' && <ReactMarkdown>{parsed.policy}</ReactMarkdown>}
                 {activeTab === 'scope' && <ReactMarkdown>{parsed.scope}</ReactMarkdown>}
                 {activeTab === 'note' && (
