@@ -11,6 +11,7 @@ import CameraCapture from '@/components/CameraCapture'
 import { getTotalCodeCount, getAllCategories, getCodesByCategory } from '@/lib/code-matcher'
 import { compressImage, compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
+import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
 
 interface AnalysisResult {
   observations: string
@@ -49,6 +50,7 @@ export default function XactScopePage() {
   const [photos, setPhotos] = useState<File[]>([])
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const elapsedSeconds = useElapsedSeconds(loading)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState('')
 
@@ -56,6 +58,7 @@ export default function XactScopePage() {
   const [quickPhoto, setQuickPhoto] = useState<File | null>(null)
   const [quickItems, setQuickItems] = useState<any[]>([])
   const [quickLoading, setQuickLoading] = useState(false)
+  const quickElapsedSeconds = useElapsedSeconds(quickLoading)
   const [quickError, setQuickError] = useState('')
 
   // Browse
@@ -254,7 +257,7 @@ export default function XactScopePage() {
                     className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-3 px-6 rounded-xl font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-600/20"
                   >
                     {loading
-                      ? <><Loader2 size={15} className="animate-spin" /> Analyzing...</>
+                      ? <><Loader2 size={15} className="animate-spin" /> Analyzing... ({elapsedSeconds}s)</>
                       : <><ScanSearch size={15} /> Analyze &amp; Match Codes</>}
                   </button>
                   {result && (
@@ -265,6 +268,7 @@ export default function XactScopePage() {
                 </div>
                 {error && <div className="bg-red-600/10 border border-red-600/20 rounded-xl p-4 text-sm text-red-400"><strong>Error:</strong> {error}</div>}
                 {!canAnalyze && !loading && <p className="text-center text-xs text-slate-600">Add at least one photo or typed note to begin</p>}
+                {loading && <p className="text-center text-xs text-slate-600">Can take up to a minute or two — this is still working, not stuck.</p>}
               </div>
               {result && <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5"><XactResultsPanel result={result} /></div>}
             </div>
@@ -295,7 +299,7 @@ export default function XactScopePage() {
                 )}
                 {quickError && <p className="text-red-400 text-sm">{quickError}</p>}
                 <button onClick={handleQuickAnalyze} disabled={quickLoading || !quickPhoto} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
-                  {quickLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Identifying codes…</> : <><Camera className="w-4 h-4" /> Identify Xactimate Codes</>}
+                  {quickLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Identifying codes… ({quickElapsedSeconds}s)</> : <><Camera className="w-4 h-4" /> Identify Xactimate Codes</>}
                 </button>
               </div>
               <div className="space-y-3">

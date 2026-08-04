@@ -5,6 +5,7 @@ import { Mic, MicOff, Loader2, Copy, Mail, Check, FileText, Trash2, Plus, X, Map
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import { readJsonOrThrow } from '@/lib/upload'
+import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList
@@ -48,6 +49,7 @@ export default function FieldNotesPage() {
   const [address, setAddress] = useState('')
   const [adjusterName, setAdjusterName] = useState('')
   const [loading, setLoading] = useState(false)
+  const elapsedSeconds = useElapsedSeconds(loading)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
@@ -475,11 +477,16 @@ export default function FieldNotesPage() {
             className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors mt-6"
           >
             {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Generating File Note…</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> Generating File Note… ({elapsedSeconds}s)</>
             ) : (
               <><FileText className="w-4 h-4" /> Generate File Note ({locations.length} Locations)</>
             )}
           </button>
+          {loading && (
+            <p className="text-center text-xs text-slate-500 mt-2">
+              Can take up to a minute or two — this is still working, not stuck.
+            </p>
+          )}
         </div>
 
         <div>

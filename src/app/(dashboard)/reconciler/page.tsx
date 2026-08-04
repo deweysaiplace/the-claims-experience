@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
 import CameraCapture from '@/components/CameraCapture'
+import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
 
 function MultiPageDropzone({
   label,
@@ -108,20 +109,8 @@ export default function ReconcilerPage() {
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  // Multi-page reconciliation can legitimately take up to ~110s (Claude gets
-  // an 85s primary window, backups race for another 25s). A bare spinner
-  // with no time signal reads as "stuck" well before that -- this gives the
-  // adjuster something to judge against instead of guessing whether to wait
-  // it out or bail.
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const elapsedSeconds = useElapsedSeconds(loading)
   const [qualityWarning, setQualityWarning] = useState('')
-
-  useEffect(() => {
-    if (!loading) return
-    setElapsedSeconds(0)
-    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
-    return () => clearInterval(interval)
-  }, [loading])
   const [copied, setCopied] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
   const [emailSent, setEmailSent] = useState(false)

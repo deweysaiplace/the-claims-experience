@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
 import CameraCapture from '@/components/CameraCapture'
+import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
 
 const WORKER_API = process.env.NEXT_PUBLIC_WORKER_API_URL || 'https://claims-worker.hijasond.workers.dev'
 
@@ -107,6 +108,7 @@ export default function EngineerScopePage() {
   const [insuredLastName, setInsuredLastName] = useState('')
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
+  const elapsedSeconds = useElapsedSeconds(loading)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<'policy' | 'scope' | 'note'>('policy')
@@ -267,11 +269,16 @@ export default function EngineerScopePage() {
             disabled={loading || files.length === 0}
             className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
             {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing Engineering Report…</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing Engineering Report… ({elapsedSeconds}s)</>
             ) : (
               <><Shield className="w-4 h-4" /> Generate Aligned Scope ({files.length} pages)</>
             )}
           </button>
+          {loading && (
+            <p className="text-center text-xs text-slate-500">
+              Can take up to a minute or two — this is still working, not stuck.
+            </p>
+          )}
         </CardContent>
       </Card>
 

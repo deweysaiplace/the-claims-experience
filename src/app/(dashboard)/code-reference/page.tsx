@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import CameraCapture from '@/components/CameraCapture'
 import { compressImages } from '@/lib/compress-image'
+import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
 
 interface Message {
   role: 'user' | 'model'
@@ -25,6 +26,7 @@ export default function CodeReferencePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const elapsedSeconds = useElapsedSeconds(loading)
   const [error, setError] = useState('')
   const [photos, setPhotos] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
@@ -141,7 +143,8 @@ export default function CodeReferencePage() {
           {loading && (
             <div className="flex justify-start">
               <div className="bg-slate-800 rounded-2xl px-4 py-3 flex items-center gap-2 text-slate-400 text-sm">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Looking it up…
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                {elapsedSeconds > 8 ? `Still working… (${elapsedSeconds}s, can take up to a minute or two)` : 'Looking it up…'}
               </div>
             </div>
           )}
