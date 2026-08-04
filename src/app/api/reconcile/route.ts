@@ -31,18 +31,6 @@ export async function POST(request: NextRequest) {
       return Buffer.from(bytes).toString('base64')
     }
 
-    // Convert all pages to base64 parts
-    const partsA = await Promise.all(
-      filesA.map(async (f) => ({
-        inlineData: { mimeType: f.type as any, data: await toBase64(f) },
-      }))
-    )
-    const partsB = await Promise.all(
-      filesB.map(async (f) => ({
-        inlineData: { mimeType: f.type as any, data: await toBase64(f) },
-      }))
-    )
-
     // No notes/cause-of-loss text signal available here (unlike Field Scope),
     // so an empty query falls back to a broad, category-balanced sample --
     // the right default when the claim type isn't known in advance. See
@@ -60,11 +48,29 @@ IMPORTANT: Estimate A has ${filesA.length} page(s) and Estimate B has ${filesB.l
 
 IMPORTANT RULES:
 - Be precise and professional. Use insurance industry terminology.
-- Flag every line item that differs in quantity, unit price, or code.
-- Identify items present in one estimate but missing in the other.
+- Match line items between the two estimates by SCOPE AND DESCRIPTION, not
+  by exact wording or code alone. "Remove & replace 3-tab shingles" and "R&R
+  comp shingles - 3 tab" are very likely the same scope item described
+  differently by two different people/software -- treat them as the same
+  line item for comparison, not as one estimate missing an item the other
+  has. Only list something under MISSING ITEMS if it genuinely has no
+  reasonable counterpart in the other estimate, not just different phrasing.
+- Before flagging a quantity as a variance, check the units match. 100 SF
+  and 100 SQ are NOT the same quantity (1 SQ = 100 SF) -- normalize to the
+  same unit before comparing, and if the two estimates measure the same
+  scope in different units, say so explicitly rather than reporting a
+  variance that's actually just a unit mismatch.
+- Flag every line item that differs in quantity, unit price, or code, using
+  the matching and unit rules above.
 - Flag potential double-billing (e.g., setup/cleanup charged per room AND as a whole).
 - All amounts should be compared as numeric values.
-- When citing a Xactimate code in the CODES REFERENCED section, match it to the exact code from the REFERENCE CODES list below if the code you observed on the photographed estimate is in it. Do not invent or guess a code that isn't in the list -- an adjuster will act on this.
+- The codes you cite in the CODES REFERENCED section must be transcribed
+  EXACTLY as printed on the photographed estimate -- you are reading real
+  codes off a real document, not recalling one from memory. Never
+  substitute, "correct", or omit a code just because it doesn't appear in
+  the REFERENCE CODES list below; that list is a sanity aid for you, not a
+  restriction on what you're allowed to transcribe from what you can
+  actually see on the page.
 - Respond with PLAIN MARKDOWN ONLY. Do not wrap the response in an HTML document, a <!DOCTYPE> declaration, or <html>/<head>/<body> tags, and do not use markdown code fences around the whole answer. The response is rendered directly as Markdown — any HTML wrapper will display as broken, unreadable text to the adjuster instead of a formatted report.
 
 ${codeReference}`
@@ -90,8 +96,8 @@ Use 🔴 for major variance (>20%), 🟡 for moderate (5-20%), 🟢 for match.
 
 ## CODES REFERENCED
 List every distinct Xactimate code you used in the matrix above, one bare code per line with a leading dash and nothing else on the line (no description, no quantity) — e.g.:
-- WTRDRYLF
-- PNTP
+- RFGCSFRN
+- WTREXTA
 This section is parsed by code, not read by the adjuster, so it must contain ONLY the codes, exactly as written in the matrix above, one per line.
 
 ## MISSING ITEMS
@@ -103,8 +109,11 @@ Any items that appear to charge twice for the same scope.
 ## SUMMARY
 - Total Est A: $X,XXX
 - Total Est B: $X,XXX
-- Net Discrepancy: $X,XXX
-- Recommended Approved Amount: $X,XXX (with brief justification)
+- Net Discrepancy: $X,XXX (Est B minus Est A -- positive means the contractor estimate is higher, negative means the carrier estimate is higher; state which direction it is)
+- Suggested Starting Point for Negotiation: $X,XXX (with brief justification)
+This is a draft starting point based on what's visible in the photos, not
+an approval decision -- the adjuster verifies against policy and field
+observations before anything gets approved.
 
 ## CONTRACTOR EMAIL DRAFT
 Professional email to contractor explaining the scope differences, what can be approved per policy guidelines, and requesting clarification on flagged items.
@@ -113,7 +122,9 @@ Professional email to contractor explaining the scope differences, what can be a
 Internal claim file note documenting the estimate review, suitable for direct entry into the claim system.`
 
     let text = ''
-    let provider = 'gemini'
+    // Always reassigned from response.provider before being read (the catch
+    // block re-throws without touching it) -- no meaningful default exists.
+    let provider = ''
 
     try {
       console.log(`Attempting reconciliation: ${filesA.length} vs ${filesB.length} pages...`)

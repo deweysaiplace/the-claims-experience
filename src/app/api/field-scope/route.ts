@@ -33,8 +33,8 @@ For each damaged item you identify:
 
 ## CODES REFERENCED
 List every distinct Xactimate code you used in the table above, one bare code per line with a leading dash and nothing else — e.g.:
-- RFGARC
-- WTRDRYLF
+- RFGCSFRN
+- WTREXTA
 This section is parsed by code, not read by the adjuster, so it must contain ONLY the codes, exactly as written in the table above, one per line.
 
 ## 3. FIELD NARRATIVE
