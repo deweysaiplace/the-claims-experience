@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { BookOpen, Send, Loader2, Trash2, Camera, ImagePlus, X } from 'lucide-react'
+import { BookOpen, Send, Loader2, Trash2, ImagePlus, X, Mic, MicOff, MessageSquare } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import CameraCapture from '@/components/CameraCapture'
@@ -13,6 +13,8 @@ interface Message {
   content: string
 }
 
+type Mode = 'lookup' | 'consult'
+
 const QUICK_QUESTIONS = [
   'What is the standard code for detaching and resetting an aluminum awning?',
   'When does O&P apply on a State Farm claim?',
@@ -22,7 +24,15 @@ const QUICK_QUESTIONS = [
   'When is matching required for siding replacement?',
 ]
 
+const CONSULT_STARTERS = [
+  "I'm at a property with wind damage to the roof and siding — walk me through what I should be scoping.",
+  'Insured says the water damage is a few days old, but what I\'m seeing suggests longer-term — how should I approach this?',
+  'Contractor wants a full roof replacement, but the damage looks localized — how do I evaluate whether matching applies?',
+  "The insured is pushing back on my scope — help me think through what's actually defensible here.",
+]
+
 export default function CodeReferencePage() {
+  const [mode, setMode] = useState<Mode>('lookup')
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,6 +42,68 @@ export default function CodeReferencePage() {
   const [previews, setPreviews] = useState<string[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
+
+  // Same fixed dictation pattern already proven on Policy Chat/Field Notes:
+  // rebuild from index 0 each time and replace (not append) a final chunk
+  // that's just a fuller version of the last one -- see those pages for why.
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  const micBaselineRef = useRef('')
+
+  useEffect(() => {
+    const SpeechAPI = typeof window !== 'undefined'
+      ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      : null
+    if (!SpeechAPI) return
+    const rec = new SpeechAPI()
+    rec.continuous = true
+    rec.interimResults = false
+    rec.lang = 'en-US'
+    rec.onresult = (e: any) => {
+      const finalChunks: string[] = []
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          const chunk = e.results[i][0].transcript.trim()
+          if (!chunk) continue
+          const prev = finalChunks[finalChunks.length - 1]
+          if (prev && chunk.toLowerCase().startsWith(prev.toLowerCase())) {
+            finalChunks[finalChunks.length - 1] = chunk
+          } else {
+            finalChunks.push(chunk)
+          }
+        }
+      }
+      const sessionFinal = finalChunks.join(' ')
+      if (sessionFinal) {
+        const base = micBaselineRef.current
+        setInput(base ? `${base} ${sessionFinal}`.trim() : sessionFinal)
+      }
+    }
+    rec.onend = () => setIsListening(false)
+    rec.onerror = () => setIsListening(false)
+    recognitionRef.current = rec
+  }, [])
+
+  const toggleMic = () => {
+    if (!recognitionRef.current) return
+    if (isListening) {
+      recognitionRef.current.stop()
+    } else {
+      micBaselineRef.current = input
+      recognitionRef.current.start()
+      setIsListening(true)
+    }
+  }
+
+  const switchMode = (next: Mode) => {
+    if (next === mode) return
+    // Different system prompts per mode -- keeping cross-mode history around
+    // would send the consult framing a lookup-mode answer, or vice versa.
+    // Starting fresh avoids a confused mid-conversation context switch.
+    setMode(next)
+    setMessages([])
+    setError('')
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -66,6 +138,7 @@ export default function CodeReferencePage() {
       const form = new FormData()
       form.append('question', effectiveQuestion)
       form.append('history', JSON.stringify(history))
+      form.append('mode', mode)
       if (attachedPhotos.length) {
         const prepared = await compressImages(attachedPhotos)
         prepared.forEach((p) => form.append('photos', p))
@@ -91,15 +164,30 @@ export default function CodeReferencePage() {
           Code Reference
         </h1>
         <p className="text-slate-400 text-sm mt-1">
-          Ask anything about Xactimate codes, scoping rules, O&P, coverage, or estimating best practices
+          {mode === 'lookup'
+            ? 'Ask anything about Xactimate codes, scoping rules, O&P, coverage, or estimating best practices'
+            : 'Describe a live claim situation and think it through with a second opinion'}
         </p>
+      </div>
+
+      <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 max-w-max mb-4">
+        <button onClick={() => switchMode('lookup')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${mode === 'lookup' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+          <BookOpen className="w-3.5 h-3.5" /> Quick Lookup
+        </button>
+        <button onClick={() => switchMode('consult')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${mode === 'consult' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+          <MessageSquare className="w-3.5 h-3.5" /> Claim Consult
+        </button>
       </div>
 
       {messages.length === 0 && (
         <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Quick questions</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            {mode === 'lookup' ? 'Quick questions' : 'Example scenarios'}
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {QUICK_QUESTIONS.map((q) => (
+            {(mode === 'lookup' ? QUICK_QUESTIONS : CONSULT_STARTERS).map((q) => (
               <button
                 key={q}
                 onClick={() => sendMessage(q)}
@@ -116,9 +204,19 @@ export default function CodeReferencePage() {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-slate-600 py-12">
-              <BookOpen className="w-16 h-16 mb-4 opacity-20" />
-              <p className="text-sm">Your Xactimate expert is ready</p>
-              <p className="text-xs mt-1">Ask about codes, scoping, O&P, coverage rules…</p>
+              {mode === 'lookup' ? (
+                <>
+                  <BookOpen className="w-16 h-16 mb-4 opacity-20" />
+                  <p className="text-sm">Your Xactimate expert is ready</p>
+                  <p className="text-xs mt-1">Ask about codes, scoping, O&P, coverage rules…</p>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-16 h-16 mb-4 opacity-20" />
+                  <p className="text-sm">Talk through a claim, live</p>
+                  <p className="text-xs mt-1">Type or tap the mic and describe what you're seeing…</p>
+                </>
+              )}
             </div>
           )}
 
@@ -195,14 +293,23 @@ export default function CodeReferencePage() {
                 e.target.value = ''
               }}
             />
+            {recognitionRef.current && (
+              <button
+                onClick={toggleMic}
+                title={isListening ? 'Stop listening' : 'Speak instead of typing'}
+                className={`p-2.5 rounded-xl transition-colors flex-shrink-0 ${isListening ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'}`}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+            )}
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
-              placeholder="Ask about any Xactimate code, scoping rule, or coverage question…"
+              placeholder={isListening ? 'Listening…' : mode === 'lookup' ? 'Ask about any Xactimate code, scoping rule, or coverage question…' : 'Describe what you\'re seeing, or tap the mic…'}
               disabled={loading}
-              className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 disabled:opacity-50"
+              className={`flex-1 bg-slate-800 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-colors disabled:opacity-50 ${isListening ? 'border-red-500 placeholder-red-400' : 'border-slate-700 focus:border-blue-500'}`}
             />
             {messages.length > 0 && (
               <button
