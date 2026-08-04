@@ -179,7 +179,7 @@ export default function PortalPage() {
       {/* View Modal */}
       {selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] bg-slate-900 border-slate-700 flex flex-col shadow-2xl">
+          <Card className="w-full max-w-4xl max-h-[90dvh] bg-slate-900 border-slate-700 flex flex-col shadow-2xl">
             <CardHeader className="flex flex-row items-center justify-between p-4 border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
                 <span className={`text-xs px-2 py-1 rounded-md border ${getTypeColor(selectedReport.type)}`}>

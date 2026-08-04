@@ -355,7 +355,7 @@ export default function XactScopePage() {
             {browseQuery || browseCategory !== 'All' ? ' matching' : ' total'}
           </p>
 
-          <div className="space-y-1 max-h-[62vh] overflow-y-auto pr-1">
+          <div className="space-y-1 max-h-[62dvh] overflow-y-auto pr-1">
             {browseCodes.slice(0, 200).map(c => (
               <div key={c.code} className="flex items-center gap-3 px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
                 <span className="font-mono font-bold text-blue-400 text-sm w-36 flex-shrink-0">{c.code}</span>

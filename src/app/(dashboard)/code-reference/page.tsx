@@ -84,7 +84,7 @@ export default function CodeReferencePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
+    <div className="max-w-3xl mx-auto flex flex-col h-[calc(100dvh-8rem)]">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <BookOpen className="w-6 h-6 text-blue-400" />

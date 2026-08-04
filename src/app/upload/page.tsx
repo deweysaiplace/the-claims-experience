@@ -59,7 +59,7 @@ export default function PhoneUploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
+    <div className="min-h-dvh bg-slate-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-800 bg-slate-900">
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
