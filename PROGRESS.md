@@ -171,44 +171,58 @@ a second bug — re-verify first before touching this code again.**
 
 ---
 
-## Open issues, in priority order (as of 2026-08-01, end of session)
+## Open issues, in priority order (as of 2026-08-02, end of session)
 
-1. **Voice still duplicating? Re-verify first.** Owner reported one more duplication instance on
-   Field Scope after the rebuild-from-scratch fix (`b88ad67` era) was deployed. Before writing any
-   new code: confirm which deploy was actually live on the phone at that moment (check
-   `vercel ls`, compare timestamps) and get a fresh repro. Don't assume the fix failed without that.
+**Done and deployed tonight (2026-08-02 session), not yet re-verified live by owner except where noted:**
+- ~~Voice duplicating~~ — real cause found: growing-prefix finals treated as separate chunks, not the
+  same index being revised. Fixed in field-notes, field-scope, and policy-chat.
+- ~~Camera opens file picker~~ — replaced `<input capture>` everywhere (Field Scope, Xact Scope,
+  Reconciler, Engineer Scope, Code Reference, /upload) with a real `getUserMedia`-driven
+  `src/components/CameraCapture.tsx`. Owner confirmed only Field Scope worked before this rollout;
+  Code Reference used identical code to Field Scope even before the rollout, so if it's still not
+  working there after retest, suspect a per-origin camera permission prompt, not code.
+- Dead vertical gap in Scope Results — swapped `100vh`→`100dvh` (mobile address-bar viewport quirk).
+  **Unconfirmed** — needs a live repro to verify.
+- ~~Photo upload on Code Reference~~ — done, camera + gallery attach in the chat.
+- ~~Unify the two Xactimate datasets~~ — turned out worse than described: the prompt-grounding file
+  (`xactimate-codes.ts`) was ~97% fabricated, not a partial-overlap real extract. Both deleted;
+  `src/lib/xactimate-codes-search.ts` now grounds every prompt on the real 2,728-code
+  `xactimate-codes.json` via keyword/category retrieval. Verifier's unmatched-code warning
+  re-enabled.
+- ~~Wire Code Reference to State Farm guidelines~~ — done.
+- ~~transcribe decision~~ — owner didn't need it (uses live dictation everywhere). Cut entirely:
+  `/api/transcribe`, `VoiceRecorder.tsx`, and the dead `transcription` field threading gone.
 
-2. **Camera opens the file browser (Explorer), not the camera, on Field Scope.** `capture="environment"`
-   is correctly present in the committed source (verified). Owner confirmed this in a real Chrome
-   tab, not an in-app/embedded browser, so that's ruled out as the cause. Also: Take Photo allows
-   only 1 file, Upload allows 4 — that specific part is expected (intentional, no `multiple` on the
-   camera input), not a bug. The camera-not-launching part is still unexplained. Likely needs
-   device/Chrome-version-specific research; may be a real Android Chrome limitation with no pure
-   HTML fix, in which case the honest answer is telling the owner "take photo first, then Upload" is
-   the reliable path on this device, rather than continuing to chase it blind.
+**Found and fixed mid-session, from a real live production incident (2026-08-02):**
+- Reconciler AI calls were timing out across all three providers on a real 8-photo run. Root cause
+  was two-layered: (1) `ai-fallback.ts`'s 25s-per-provider timeout was sized for an old sequential
+  fallback chain and never widened after it was refactored to race providers in parallel, and (2)
+  `CameraCapture.tsx` (this session's own earlier fix for the file-picker bug) was taking a
+  low-resolution video-stream snapshot instead of a real photo, producing genuinely illegible source
+  images that made every provider struggle. Fixed: `CameraCapture` now uses Chrome's `ImageCapture`
+  API for a real full-resolution still photo where available, with explicit high-res `getUserMedia`
+  constraints as fallback. Provider order changed to Claude-primary (confirmed funded and reliable)
+  with an 85s window, Grok/Gemini as a 25s backup race. Five of seven AI routes were also missing an
+  explicit `maxDuration`, silently relying on Vercel's shorter platform default — all now declare 120s.
+- Reconciler also got a pass on the three findings from that incident: grounded on the real
+  2,728-code price list (was ungrounded — same fabricated-code risk Field Scope had before tonight's
+  fix), an elapsed-time indicator during the up-to-110s wait, and a pre-flight warning when a
+  compressed photo is suspiciously small (<40KB) — the same signal that flagged the blurry-camera bug.
 
-3. **Dead vertical gap in Field Scope's "Scope Results" panel.** Screenshot showed a large blank
-   space right after "Photo 2 (Wider view of roof and gutter):" cut off mid-render. Not yet
-   investigated — could be the AI response itself containing a blank run (stray newlines, an empty
-   section) or a CSS/overflow artifact in the `max-h-[calc(100vh-200px)] overflow-y-auto` results
-   container. Get the actual raw markdown for a real report that shows this before guessing at a fix.
+**Still open:**
 
-4. **Add photo upload to Code Reference.** Owner wants to point the camera at damage and ask "what's
-   the procedure for this" in the same request. Small, well-understood change — every other page's
-   photo pipeline (`compressImages`, base64 into `generateWithFallback`) is the exact pattern to
-   reuse. `src/app/api/code-reference/route.ts` and its page currently take text only.
+11. **Reconciler's single mega-prompt architecture is the deeper reliability risk, not fully
+    addressed tonight.** One AI call reads both multi-page estimates, compares them, and drafts an
+    email + file note, all at once — a blurry page anywhere in either estimate degrades the whole
+    output, and there's no way to tell which side failed. A real fix would split this into stages:
+    extract Estimate A to structured line items, extract Estimate B separately (could run in
+    parallel, each call simpler/faster than today's combined one), then diff and draft as a final
+    step. Would likely be both more reliable and more debuggable — if one side comes back garbled,
+    the owner would know exactly which photos to retake instead of a blanket "not legible." This is
+    a real rebuild, not a tonight-sized fix; deliberately not started.
 
-5. **Unify the two Xactimate datasets** (see above) — the real fix behind the suppressed warning.
-
-6. **Wire Code Reference to the owner's own extracted State Farm guidelines.** `src/data/extracted-guidelines.ts`
-   (45.8KB, real SOP docs the owner photographed) is currently only used by `policy-chat/load-docs`.
-   Lower priority than it looked earlier tonight — the owner tested a real procedural question
-   against Code Reference's existing (ungrounded) prompt and got a good answer from the model's own
-   knowledge, so this is a nice-to-have grounding improvement, not fixing something broken.
-
-7. **Add live web search to Code Reference**, for contractor best-practices beyond what's been
-   extracted. A real integration (search API, or a provider's built-in search), not a prompt tweak.
-   Bigger and separate from item 6.
+7. **Add live web search to Code Reference.** Needs the owner to pick a search API (Tavily, Brave,
+   Google Custom Search) and get a key — deferred, not a code task tonight.
 
 8. **The Cloudflare Worker (`claims-worker.hijasond.workers.dev`) has no authentication.**
    Its URL is public (ships in the client JS bundle via `NEXT_PUBLIC_WORKER_API_URL`). CORS is set
@@ -218,16 +232,77 @@ a second bug — re-verify first before touching this code again.**
    **also not a git repo** — same backup risk as everything else tonight. Owner's call on priority;
    not touched, since it's a different codebase from this one.
 
-9. **Cleanup — collapse to a smaller screen count.** Originally planned as 5 (merge Field Scope +
-   Xact Code Finder + Field Narratives into one Field tool; keep Code Reference, Policy Chat,
-   Reconciler, Portal; delete Site Walkthroughs, Feedback, duplicate video routes, dead
-   `components/auth/` pair). Antigravity has since added a genuinely-used **Engineer Scope** page
-   (EagleView OCR → Xactimate estimate) that wasn't part of that plan — re-confirm the target
-   screen list with the owner before merging anything, since the plan predates that feature.
+9. **Screen consolidation — explicitly parked by the owner (2026-08-02).** He's actively using all 8
+   current screens (`code-reference`, `engineer-scope`, `field-notes`, `field-scope`, `policy-chat`,
+   `portal`, `reconciler`, `xact-scope`) and has no fixed target list yet — floated grouping
+   AI-lookup tools together (Code Reference + Policy Chat + Xact Code Finder) and Reconciler +
+   Engineer Scope together, but contradicted himself on where Xact Code Finder belongs mid-thought.
+   Do not merge or restructure screens without a fresh, explicit go-ahead — he doesn't want anything
+   he actively uses changed without a clear reason.
 
-10. **`transcribe` decision**, still open. It's audio; Grok is text+vision only, so it can't absorb
-    this route the way it did the others. Options unchanged: OpenAI Whisper (package already
-    installed, ~$0.006/min), leave on Gemini's 20/day cap, or cut if unused.
+10. **PII scrubbing is inconsistent and has a real gap (new, 2026-08-02).** `src/utils/sanitizer.ts`
+    (`scrubPii`/`restorePii`) already redacts phone/email/SSN/DOB and scrubs names matching rigid
+    patterns like "Insured: John" — but it's only wired into `field-note`, `reconcile`, and
+    `generate-estimate`. **Field Scope — the main tool — has none at all.** Confirmed live: a real
+    saved report in Supabase had "the insured, Ms. Carrying" written straight into the AI-generated
+    narrative, because nothing scrubbed the transcript before it reached the AI, and the AI wrote the
+    name straight into its own prose (a phrasing the existing name-regex wouldn't have caught either
+    — it only matches labeled fields, not natural sentences).
+
+    Owner's policy (2026-08-02): property address and last-4 claim ref are fine to keep (address is
+    operationally necessary; last-4 already matches the UI's own field labels and the scrubber's
+    existing behavior). Insured/claimant name and other PII (phone, email, SSN, DOB) should never be
+    saved or sent to an AI provider.
+
+    Recommended approach, not yet built: regex scrubbing alone won't hold against natural AI prose —
+    add an explicit system-prompt instruction (never use the insured's/claimant's proper name; refer
+    to "the insured"/"the homeowner" generically) as the primary defense, with `scrubPii` on
+    transcript/notes input as a second layer, applied consistently across every generation route
+    (field-scope, field-note, code-reference, reconcile, generate-estimate, xact-analyze,
+    engineer-scope) — not just the 3 it's in today.
+
+---
+
+## Feature ideas under review (not committed, not scoped — for discussion before building)
+
+- **Weather Forensics / Cause-of-Loss Validator (owner idea, 2026-08-02).** Paste a claim address +
+  date of loss, get back a "Storm Fingerprint" — peak wind gust, hail-size probability, rainfall
+  intensity — sourced from public NOAA/NCEI data, as a one-page report to show the insured/contractor
+  when their damage claim doesn't match what the sky actually did that day. Real friction: an insured
+  says "hail" but the actual swath missed the property by miles, and right now that's manual research
+  or a guess.
+
+  Feasibility notes for whoever scopes this: NCEI's Storm Events Database is real and public but
+  county-level, not exact lat/long — precise enough to confirm an event happened, not to prove it
+  missed one specific house. For that precision, Iowa State's Mesonet (mesonet.agron.iastate.edu)
+  hosts a public archive of NOAA's MRMS MESH (Maximum Estimated Size of Hail) gridded radar data,
+  which is what most real hail-forensics tools actually use for address-level hail-size estimates.
+  METAR archives (also on IEM) cover wind/rain at the nearest airport. All free/public, no vendor
+  contract needed — but stitching gridded radar data to a lat/long and a specific timestamp is a real
+  integration, not a quick API call. Worth a dedicated scoping pass before estimating effort.
+
+- **Material ID from photo / "Auto-Scoper" (owner idea, 2026-08-02).** Structured-JSON vision prompt
+  identifies roof material, siding profile, gutter type, and estimated age/wear from a photo, mapped
+  straight to a filtered Xactimate code instead of the adjuster hunting through the list. Owner also
+  wants a "is this product discontinued" flag, since a discontinued product is real leverage for
+  matching arguments (can't match discontinued = stronger case for full replacement, not a patch).
+
+  Feasibility notes: this is more "deepen existing" than "build new." `src/lib/code-matcher.ts`
+  already does exactly the labels-to-Xactimate-code matching step described here (keyword/category
+  scoring, confidence levels, used today by Xact Scope's Multi mode) — the photo-analysis prompt
+  would need to go deeper on brand/profile specifics than it does now, but the matching pipeline
+  already exists and works. The "discontinued" check is the real new piece, and it can't be a static
+  dataset — product lines get discontinued continuously, so it needs live lookup (manufacturer sites,
+  contractor forums), which is the same underlying capability as the web-search item above (#7).
+  Worth building those two together rather than twice.
+
+  One caution worth keeping from the owner's own prompt draft: exact brand/product-line ID from a
+  single field photo is much less reliable than material-class ID ("architectural vs. 3-tab" a vision
+  model can usually nail; "which specific GAF product line" often can't without a visible label or a
+  very distinctive pattern most inspection photos don't capture). The "state 'Requires manual
+  verification' if unsure" instinct in the draft prompt is the right call and should stay non-negotiable
+  in the final version — this app's existing code-grounding prompts already follow that same principle
+  (never present a guessed code as real), and this should too.
 
 ---
 
@@ -240,8 +315,10 @@ SDKs, three auth systems, a Go MCP server duplicating capabilities the tooling a
 from features being guessed at before ever being run in the field — that root cause is resolving
 itself now that real usage is surfacing real, prioritized bugs instead.
 
-The app **never touches real claim data** — it's a personal assist tool, so sending images to AI
-providers is not a compliance question.
+The app is a personal assist tool, not connected to State Farm systems, so this isn't a formal
+compliance requirement — but as of 2026-08-02 the owner wants PII (insured/claimant name, phone,
+email, SSN, DOB) minimized out of both the AI pipeline and the saved database as a matter of good
+practice. Property address and last-4 claim ref are fine to keep. See open issue 10.
 
 **Do not add features beyond what's in the open-issues list above without asking first.** The
 owner is actively working claims with this app; changes should fix what's broken or explicitly
