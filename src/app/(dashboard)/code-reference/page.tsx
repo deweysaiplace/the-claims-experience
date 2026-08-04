@@ -269,7 +269,11 @@ export default function CodeReferencePage() {
               ))}
             </div>
           )}
-          <div className="flex gap-2">
+          {/* Attach/dictate row, separate from type-and-send below -- camera +
+              gallery + mic + text + clear + send all in one row overflowed
+              off-screen on a real phone (text input and send button pushed
+              past the right edge). */}
+          <div className="flex gap-2 mb-2">
             <CameraCapture
               onCapture={(file) => setPhotos((prev) => [...prev, file])}
               label=""
@@ -302,6 +306,17 @@ export default function CodeReferencePage() {
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
             )}
+            {messages.length > 0 && (
+              <button
+                onClick={() => setMessages([])}
+                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-slate-300 transition-colors ml-auto"
+                title="Clear chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
             <input
               type="text"
               value={input}
@@ -311,15 +326,6 @@ export default function CodeReferencePage() {
               disabled={loading}
               className={`flex-1 bg-slate-800 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-colors disabled:opacity-50 ${isListening ? 'border-red-500 placeholder-red-400' : 'border-slate-700 focus:border-blue-500'}`}
             />
-            {messages.length > 0 && (
-              <button
-                onClick={() => setMessages([])}
-                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-slate-300 transition-colors"
-                title="Clear chat"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
             <button
               onClick={() => sendMessage(input)}
               disabled={loading || (!input.trim() && photos.length === 0)}
