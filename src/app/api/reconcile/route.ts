@@ -60,6 +60,14 @@ IMPORTANT RULES:
   same unit before comparing, and if the two estimates measure the same
   scope in different units, say so explicitly rather than reporting a
   variance that's actually just a unit mismatch.
+- A larger quantity/scope on one side is not automatically an overcharge.
+  If a contractor estimate scopes a full elevation or a whole roof slope
+  where the carrier estimate only scopes a partial repair, note that this
+  is consistent with a legitimate matching requirement (many policies and
+  building codes require replacing an entire visible section when the
+  original material can no longer be matched) rather than assuming it's
+  padding -- flag it as "possible matching issue, verify" instead of a
+  straightforward overcharge.
 - Flag every line item that differs in quantity, unit price, or code, using
   the matching and unit rules above.
 - Flag potential double-billing WITHIN EACH ESTIMATE SEPARATELY, not just
