@@ -9,6 +9,13 @@ interface CameraCaptureProps {
   label?: string
 }
 
+// The ImageCapture API isn't in TS's default DOM lib. Minimal shape for
+// what this file actually uses.
+interface ImageCaptureLike {
+  takePhoto: () => Promise<Blob>
+}
+declare const ImageCapture: { new (track: MediaStreamTrack): ImageCaptureLike } | undefined
+
 // Replaces <input type="file" capture="environment"> — on some Android
 // Chrome versions that silently opens the file picker instead of the
 // camera, especially when the input is triggered via a parent <label>.
@@ -33,8 +40,17 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
       return
     }
     try {
+      // Without explicit width/height, the browser defaults to a low
+      // "video call" resolution (often well under 1MP) instead of the
+      // camera's real photo resolution -- produced visibly fuzzy captures
+      // on a real device. `ideal` asks for the highest the camera offers up
+      // to this without forcing a hard failure if it can't hit it exactly.
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 4032 },
+          height: { ideal: 3024 },
+        },
         audio: false,
       })
       streamRef.current = stream
@@ -52,7 +68,7 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
     setOpen(false)
   }
 
-  const capture = () => {
+  const captureFromVideoFrame = () => {
     const video = videoRef.current
     if (!video) return
     const canvas = document.createElement('canvas')
@@ -64,7 +80,30 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
     canvas.toBlob((blob) => {
       if (blob) onCapture(new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' }))
       close()
-    }, 'image/jpeg', 0.9)
+    }, 'image/jpeg', 0.92)
+  }
+
+  const capture = async () => {
+    // ImageCapture.takePhoto() asks the camera hardware for an actual still
+    // photo -- full resolution, same as a native camera app. A canvas
+    // snapshot of the <video> element only ever captures at the *video
+    // stream's* resolution, which is a fundamentally lower-quality feed even
+    // with the width/height constraints above. Prefer this when available
+    // (Chrome/Android); fall back to the video-frame snapshot otherwise.
+    const track = streamRef.current?.getVideoTracks()[0]
+    if (track && typeof ImageCapture !== 'undefined') {
+      try {
+        const imageCapture = new ImageCapture(track)
+        const blob = await imageCapture.takePhoto()
+        onCapture(new File([blob], `photo-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' }))
+        close()
+        return
+      } catch {
+        // Some devices advertise ImageCapture but throw on takePhoto() --
+        // fall through to the video-frame snapshot rather than failing.
+      }
+    }
+    captureFromVideoFrame()
   }
 
   return (
