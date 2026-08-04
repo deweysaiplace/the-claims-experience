@@ -48,6 +48,13 @@ IMPORTANT: Estimate A has ${filesA.length} page(s) and Estimate B has ${filesB.l
 
 IMPORTANT RULES:
 - Be precise and professional. Use insurance industry terminology.
+- If any page or section of either estimate is too blurry, low-resolution,
+  glare-affected, or cut off to read reliably, say so explicitly -- name
+  which estimate and which page -- rather than silently working around it
+  or omitting the line items on it. A reconciliation that quietly skips
+  unreadable content is worse than one that admits what it couldn't read:
+  the adjuster needs to know to retake that specific page, not assume the
+  report is complete when it isn't.
 - Match line items between the two estimates by SCOPE AND DESCRIPTION, not
   by exact wording or code alone. "Remove & replace 3-tab shingles" and "R&R
   comp shingles - 3 tab" are very likely the same scope item described
@@ -115,7 +122,7 @@ is for the detailed follow-up, not the first thing scanned.
 ## VARIANCE MATRIX
 An 8-column table is unreadable on a phone. Use only: | Line Item | Est A $ | Est B $ | Variance | Flag |
 Put the Xactimate code in parentheses after the line item name, not its own column.
-Use 🔴 for major variance (>20%), 🟡 for moderate (5-20%), 🟢 for match.
+Use 🔴 for major variance (>20%), 🟡 for moderate (5-20%), 🟢 for match (0-5%, not just exact) -- every row gets exactly one of these three, no gap between the ranges.
 
 ## CODES REFERENCED
 List every distinct Xactimate code you used in the matrix above, one bare code per line with a leading dash and nothing else on the line (no description, no quantity) — e.g.:
