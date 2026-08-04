@@ -3,6 +3,12 @@ import { generateWithFallback } from '@/lib/ai-fallback'
 import { verifyAndReplaceCodeSection } from '@/lib/xactimate-verify'
 import { getRelevantCodesText } from '@/lib/xactimate-codes-search'
 
+// Without this, the route falls back to Vercel's platform default duration,
+// which can be shorter than generateWithFallback's own ~90s worst-case
+// timeout budget (see ai-fallback.ts) -- the platform would kill the
+// function before the code's own fallback logic ever got a chance to work.
+export const maxDuration = 120
+
 const FIELD_SCOPE_PROMPT = `You are an elite property insurance field adjuster AI assistant. You are analyzing inspection photos and field notes from a property damage claim.
 
 Your job is to produce THREE outputs from the provided photos and/or voice transcript:

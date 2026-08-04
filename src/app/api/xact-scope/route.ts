@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateWithFallback } from '@/lib/ai-fallback'
 
+// Without this, the route falls back to Vercel's platform default duration,
+// which can be shorter than generateWithFallback's own ~90s worst-case
+// timeout budget (see ai-fallback.ts) -- the platform would kill the
+// function before the code's own fallback logic ever got a chance to work.
+export const maxDuration = 120
+
 const XACTIMATE_SYSTEM = `You are an expert Xactimate estimator with comprehensive knowledge of all Xactimate category codes, item codes, and unit of measurement standards. When given a property damage photo, you identify the damaged material and suggest the correct Xactimate line items.
 
 Common category codes reference:

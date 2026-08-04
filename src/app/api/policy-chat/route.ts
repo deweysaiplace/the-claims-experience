@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateWithFallback } from '@/lib/ai-fallback'
 
+// Without this, the route falls back to Vercel's platform default duration,
+// which can be shorter than generateWithFallback's own ~90s worst-case
+// timeout budget (see ai-fallback.ts) -- the platform would kill the
+// function before the code's own fallback logic ever got a chance to work.
+export const maxDuration = 120
+
 const POLICY_CHAT_SYSTEM = `You are an expert insurance claims analyst and senior adjuster with deep knowledge of State Farm policies, Xactimate estimating, and claim investigation procedures. You analyze claims holistically — policy coverage, estimate validation, scope verification, and documentation requirements.
 
 Your role is to provide comprehensive claims analysis based on the policy document(s) and any additional context provided. Follow these rules:

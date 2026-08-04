@@ -8,9 +8,10 @@ export interface AIFallbackResponse {
 }
 
 /**
- * Provider order is deliberate: Grok is the only paid account, Gemini's free
- * tier is capped at 20 requests/day, and Claude needs an account balance.
- * Trying the dead ones first cost two failing round-trips per request.
+ * Provider order is deliberate: Claude is now the primary paid, reliable
+ * account (2026-08-02). Gemini's free tier is capped at 20 requests/day;
+ * Grok is a backup. Trying a dead/capped one first costs a failing
+ * round-trip for no reason.
  */
 
 /** The callers pass raw base64 with no mime type, so read it off the magic bytes. */
@@ -140,43 +141,47 @@ export async function generateWithFallback(
   base64Images?: string[] // Optional array of base64 images (without data URI prefix)
 ): Promise<AIFallbackResponse> {
   const errors: string[] = []
-  // Tightened after a real 9-page run still hit FUNCTION_INVOCATION_TIMEOUT
-  // with the previous fully-sequential 35s-per-attempt budget (up to 105s
-  // worst case). Vercel's actual enforced ceiling may be lower than the
-  // 120s maxDuration set in the route if this deployment doesn't have Fluid
-  // Compute enabled — worth confirming, but the code shouldn't depend on it.
-  const ATTEMPT_TIMEOUT_MS = 25_000
+  // A real reconcile run (5 photos, 8-section structured output) hit even
+  // the 45s cap on all three providers at once -- turned out to be caused
+  // by a since-fixed bug producing blurry source photos, not the providers
+  // themselves. Claude is now confirmed both funded and reliable (it's the
+  // one that came through once photo quality was still bad but the timeout
+  // was generous), so it gets the primary slot and the lion's share of the
+  // budget; Grok and Gemini are the backup race.
+  const CLAUDE_TIMEOUT_MS = 85_000
+  const BACKUP_TIMEOUT_MS = 25_000 // 85 + 25 = 110s, under the 120s ceiling
 
-  // Grok is the only paid, reliable account (see note above) — try it alone
-  // first so the common case (Grok just works) stays fast and doesn't burn
-  // Gemini's 20/day free-tier cap or Claude balance for no reason.
+  // Claude tries alone first (see note above) so the common case stays fast
+  // and doesn't burn Gemini's 20/day free-tier cap for no reason.
+  const claudeStart = Date.now()
   try {
-    const grok = await withTimeout(
-      tryGrok(prompt, systemInstruction, base64Images),
-      ATTEMPT_TIMEOUT_MS,
-      'Grok'
+    const claude = await withTimeout(
+      tryClaude(prompt, systemInstruction, base64Images),
+      CLAUDE_TIMEOUT_MS,
+      'Claude'
     )
-    if (grok) return grok
+    console.log(`Claude attempt took ${Date.now() - claudeStart}ms`)
+    if (claude) return claude
   } catch (e: any) {
-    console.error('Grok failed:', e.message)
-    errors.push(`Grok: ${e.message}`)
+    console.error(`Claude failed after ${Date.now() - claudeStart}ms:`, e.message)
+    errors.push(`Claude: ${e.message}`)
   }
 
-  // Grok didn't come through — race the two backups against each other
+  // Claude didn't come through — race the two backups against each other
   // instead of trying them one at a time, so a slow Gemini call doesn't
-  // block Claude from getting a turn within the remaining budget.
+  // block Grok from getting a turn within the remaining budget.
   //
   // Explicit labels here, not attempt.name — production builds minify
   // function names (e.g. tryGemini becomes "h"), which is why an earlier
   // error showed unreadable single-letter provider names instead of
-  // "Gemini" / "Claude".
+  // "Gemini" / "Grok".
   const backups: { fn: typeof tryGemini; label: string }[] = [
     { fn: tryGemini, label: 'Gemini' },
-    { fn: tryClaude, label: 'Claude' },
+    { fn: tryGrok, label: 'Grok' },
   ]
   const settled = await Promise.allSettled(
     backups.map(({ fn, label }) =>
-      withTimeout(fn(prompt, systemInstruction, base64Images), ATTEMPT_TIMEOUT_MS, label)
+      withTimeout(fn(prompt, systemInstruction, base64Images), BACKUP_TIMEOUT_MS, label)
     )
   )
 

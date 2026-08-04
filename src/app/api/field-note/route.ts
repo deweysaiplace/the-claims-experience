@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateWithFallback } from '@/lib/ai-fallback'
 import { scrubPii } from '@/utils/sanitizer'
 
+// Without this, the route falls back to Vercel's platform default duration,
+// which can be shorter than generateWithFallback's own ~90s worst-case
+// timeout budget (see ai-fallback.ts) -- the platform would kill the
+// function before the code's own fallback logic ever got a chance to work.
+export const maxDuration = 120
+
 export async function POST(request: NextRequest) {
   try {
     const { locations, claimRef, address, adjusterName } = await request.json() as {
