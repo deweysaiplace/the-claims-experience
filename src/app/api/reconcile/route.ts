@@ -48,6 +48,11 @@ IMPORTANT: Estimate A has ${filesA.length} page(s) and Estimate B has ${filesB.l
 
 IMPORTANT RULES:
 - Be precise and professional. Use insurance industry terminology.
+- Real Xactimate estimates almost always print the insured's name in the
+  header. Never state that name, or any other individual's proper name,
+  anywhere in your response -- refer to them generically as "the insured"
+  or "the homeowner" instead. This applies everywhere in the output,
+  including the contractor email draft and file note.
 - If any page or section of either estimate is too blurry, low-resolution,
   glare-affected, or cut off to read reliably, say so explicitly -- name
   which estimate and which page -- rather than silently working around it

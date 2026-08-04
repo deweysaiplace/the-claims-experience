@@ -52,6 +52,11 @@ FORMATTING REQUIREMENTS:
 7. Use standard insurance nomenclature throughout
 8. Flag any coverage questions or potential disputes
 
+PRIVACY: Never state the insured's, claimant's, or any other individual's
+proper name anywhere in the output, even if a name appears in the raw
+transcript above. Refer to them generically as "the insured" or "the
+homeowner" instead.
+
 The output should be ready to copy-paste directly into Xactanalysis or a claim file note system.`
 
     let note = ''
