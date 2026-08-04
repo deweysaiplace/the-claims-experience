@@ -181,42 +181,44 @@ export default function CodeReferencePage() {
         </button>
       </div>
 
-      {messages.length === 0 && (
-        <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-            {mode === 'lookup' ? 'Quick questions' : 'Example scenarios'}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {(mode === 'lookup' ? QUICK_QUESTIONS : CONSULT_STARTERS).map((q) => (
-              <button
-                key={q}
-                onClick={() => sendMessage(q)}
-                className="text-left px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-600 text-slate-400 hover:text-white text-xs transition-all"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <Card className="bg-slate-900 border-slate-800 flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-slate-600 py-12">
+            // Starter buttons live in here, inside the scrollable area, not
+            // as a separate block above the card -- that competed with the
+            // card for the page's fixed height budget and could push the
+            // input row below (fixed max-h-[calc(100dvh-8rem)]) is 8rem too
+            // short on a real phone here) the visible screen entirely.
+            <div className="flex flex-col items-center text-slate-600 py-6">
               {mode === 'lookup' ? (
                 <>
-                  <BookOpen className="w-16 h-16 mb-4 opacity-20" />
+                  <BookOpen className="w-12 h-12 mb-3 opacity-20" />
                   <p className="text-sm">Your Xactimate expert is ready</p>
-                  <p className="text-xs mt-1">Ask about codes, scoping, O&P, coverage rules…</p>
+                  <p className="text-xs mt-1 mb-5">Ask about codes, scoping, O&P, coverage rules…</p>
                 </>
               ) : (
                 <>
-                  <MessageSquare className="w-16 h-16 mb-4 opacity-20" />
+                  <MessageSquare className="w-12 h-12 mb-3 opacity-20" />
                   <p className="text-sm">Talk through a claim, live</p>
-                  <p className="text-xs mt-1">Type or tap the mic and describe what you're seeing…</p>
+                  <p className="text-xs mt-1 mb-5">Type or tap the mic and describe what you're seeing…</p>
                 </>
               )}
+              <div className="w-full">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  {mode === 'lookup' ? 'Quick questions' : 'Example scenarios'}
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {(mode === 'lookup' ? QUICK_QUESTIONS : CONSULT_STARTERS).map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => sendMessage(q)}
+                      className="text-left px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-600 text-slate-400 hover:text-white text-xs transition-all"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
