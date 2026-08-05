@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
     const transcript = formData.get('transcript') as string || ''
     const claimRef = formData.get('claimRef') as string || ''
     const address = formData.get('address') as string || ''
-    const adjusterName = formData.get('adjusterName') as string || ''
     const causeOfLoss = formData.get('causeOfLoss') as string || ''
     // GPS fix from the phone, captured where the photos were taken.
     const location = formData.get('location') as string || ''
@@ -93,7 +92,6 @@ export async function POST(request: NextRequest) {
       claimRef ? `Claim Reference: ${claimRef}` : null,
       address ? `Property Address: ${address}` : null,
       location ? `GPS at Inspection: ${location}` : null,
-      adjusterName ? `Adjuster: ${adjusterName}` : null,
       causeOfLoss ? `Cause of Loss: ${causeOfLoss}` : null,
       scrubbedTranscript ? `\nFIELD NOTES TRANSCRIPT:\n${scrubbedTranscript}` : null,
     ].filter(Boolean).join('\n')

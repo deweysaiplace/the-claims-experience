@@ -30,7 +30,6 @@ export default function FieldScopePage() {
   // Claim context
   const [claimRef, setClaimRef] = useState('')
   const [address, setAddress] = useState('')
-  const [adjusterName, setAdjusterName] = useState('')
   const [causeOfLoss, setCauseOfLoss] = useState('')
 
   // Photos
@@ -225,7 +224,6 @@ export default function FieldScopePage() {
       form.append('transcript', transcriptRef.current || transcript)
       form.append('claimRef', claimRef)
       form.append('address', address)
-      form.append('adjusterName', adjusterName)
       form.append('causeOfLoss', causeOfLoss)
       if (location) form.append('location', formatLocation(location))
 
@@ -300,7 +298,7 @@ export default function FieldScopePage() {
         body: JSON.stringify({
           claimRef,
           address,
-          adjusterName,
+          adjusterName: null,
           content,
           type: 'field-scope'
         })
@@ -347,17 +345,10 @@ export default function FieldScopePage() {
             </CardHeader>
             {contextOpen && (
               <CardContent className="pt-3 pb-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Claim Ref</label>
-                    <input type="text" value={claimRef} onChange={(e) => setClaimRef(e.target.value)} placeholder="e.g. 7842"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Adjuster</label>
-                    <input type="text" value={adjusterName} onChange={(e) => setAdjusterName(e.target.value)} placeholder="Your name"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500" />
-                  </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Claim Ref</label>
+                  <input type="text" value={claimRef} onChange={(e) => setClaimRef(e.target.value)} placeholder="e.g. 7842"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Property Address</label>

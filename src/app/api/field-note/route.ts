@@ -10,11 +10,10 @@ export const maxDuration = 120
 
 export async function POST(request: NextRequest) {
   try {
-    const { locations, claimRef, address, adjusterName } = await request.json() as {
+    const { locations, claimRef, address } = await request.json() as {
       locations: { name: string, transcript: string }[]
       claimRef?: string
       address?: string
-      adjusterName?: string
     }
 
     if (!locations || locations.length === 0) {
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
 
 Claim Reference: ${scrubRef || 'N/A'}
 Property Address: ${scrubAddr || 'N/A'}
-Adjuster: ${adjusterName || 'N/A'}
 Inspection Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 RAW TRANSCRIPTS BY LOCATION:
@@ -43,7 +41,7 @@ ${rawLocationsText}
 """
 
 FORMATTING REQUIREMENTS:
-1. Header with claim reference, property address, inspection date, adjuster name
+1. Header with claim reference, property address, inspection date
 2. Organize by the specific locations provided in the transcripts
 3. Convert casual language to professional insurance terminology
 4. For each damage item noted, suggest the likely Xactimate category code in brackets [e.g., RFG, DRY, FLR]

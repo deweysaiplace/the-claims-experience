@@ -240,26 +240,19 @@ a second bug — re-verify first before touching this code again.**
    Do not merge or restructure screens without a fresh, explicit go-ahead — he doesn't want anything
    he actively uses changed without a clear reason.
 
-10. **PII scrubbing is inconsistent and has a real gap (new, 2026-08-02).** `src/utils/sanitizer.ts`
-    (`scrubPii`/`restorePii`) already redacts phone/email/SSN/DOB and scrubs names matching rigid
-    patterns like "Insured: John" — but it's only wired into `field-note`, `reconcile`, and
-    `generate-estimate`. **Field Scope — the main tool — has none at all.** Confirmed live: a real
-    saved report in Supabase had "the insured, Ms. Carrying" written straight into the AI-generated
-    narrative, because nothing scrubbed the transcript before it reached the AI, and the AI wrote the
-    name straight into its own prose (a phrasing the existing name-regex wouldn't have caught either
-    — it only matches labeled fields, not natural sentences).
+10. ~~PII scrubbing gap~~ — **closed, 2026-08-02.** Every live generation route now has the explicit
+    "never state the insured's/claimant's proper name" system-prompt instruction (the primary
+    defense — regex alone doesn't hold against natural AI prose like "the insured, Ms. Carrying",
+    which is what actually leaked in a real saved report before this fix): Field Scope, Field Note,
+    Code Reference, Reconcile, Policy Chat, and Xact Analyze.
 
-    Owner's policy (2026-08-02): property address and last-4 claim ref are fine to keep (address is
-    operationally necessary; last-4 already matches the UI's own field labels and the scrubber's
-    existing behavior). Insured/claimant name and other PII (phone, email, SSN, DOB) should never be
-    saved or sent to an AI provider.
+    Separately, a real and unrelated bug on Engineer Scope was also found and fixed: it was saving
+    the insured's last name straight into the database, mislabeled as `adjuster_name` (removed
+    entirely, wasn't even used by the worker for analysis). Engineer Scope's own AI prompt logic
+    lives in the separate `claims-worker` repo and wasn't touched (see item 8).
 
-    Recommended approach, not yet built: regex scrubbing alone won't hold against natural AI prose —
-    add an explicit system-prompt instruction (never use the insured's/claimant's proper name; refer
-    to "the insured"/"the homeowner" generically) as the primary defense, with `scrubPii` on
-    transcript/notes input as a second layer, applied consistently across every generation route
-    (field-scope, field-note, code-reference, reconcile, generate-estimate, xact-analyze,
-    engineer-scope) — not just the 3 it's in today.
+    `generate-estimate` still has `scrubPii` but no prompt instruction — left as-is, it's dead code,
+    unreachable from any page, not worth the effort.
 
 ---
 
@@ -303,6 +296,34 @@ a second bug — re-verify first before touching this code again.**
   verification' if unsure" instinct in the draft prompt is the right call and should stay non-negotiable
   in the final version — this app's existing code-grounding prompts already follow that same principle
   (never present a guessed code as real), and this should too.
+
+- **Editable draft estimate with a correction-memory loop (owner idea, 2026-08-04).** Take 3-5 photos
+  (roof, exterior), AI drafts a full line-item estimate with codes, ready to copy or use as a
+  reference. Owner's own framing was the right one: it has to either be close to accurate, or easy to
+  fix when it's not -- and he explicitly wants his corrections to actually improve future drafts, not
+  just be a one-off overwrite of whatever the AI produced.
+
+  The base draft-generation part is largely already there: Field Scope already does photo →
+  Xactimate line-item table today. What's missing is two separable pieces:
+
+  1. **Editable output.** The line-item table is static markdown today -- can't add/remove/adjust a
+     row without retyping the whole thing outside the app. Turning it into a real editable table
+     (structured state, not a markdown blob) is a genuine but well-scoped build.
+
+  2. **Corrections actually improving future drafts.** True model fine-tuning isn't realistically
+     available on top of third-party APIs (Grok/Gemini/Claude) for a personal tool -- there's no
+     practical way to "train" those models directly. The real equivalent: save each correction
+     (what the AI drafted vs. what the owner actually changed it to) to Supabase, then feed a sample
+     of relevant past corrections back into future prompts as few-shot examples ("here's how this
+     adjuster has corrected similar drafts before"). Not true training, but the practical effect is
+     similar -- the model sees the owner's actual patterns instead of starting cold every time. Real
+     design questions before building: how many/which past corrections to surface per request
+     (relevance matching, same as the Xactimate code retrieval already built), and whether corrections
+     should be scoped per-category (roofing corrections shouldn't bias a siding draft) or global.
+
+  No AI should be trusted as fully automated here regardless -- financial/liability stakes are real,
+  so "close, and easy to fix" is the right target, not "always right." Worth scoping properly, not a
+  quick add.
 
 ---
 

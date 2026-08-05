@@ -47,7 +47,6 @@ export default function FieldNotesPage() {
 
   const [claimRef, setClaimRef] = useState('')
   const [address, setAddress] = useState('')
-  const [adjusterName, setAdjusterName] = useState('')
   const [loading, setLoading] = useState(false)
   const elapsedSeconds = useElapsedSeconds(loading)
   const [error, setError] = useState('')
@@ -196,7 +195,7 @@ export default function FieldNotesPage() {
       const res = await fetch('/api/field-note', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locations: payloadLocations, claimRef, address, adjusterName }),
+        body: JSON.stringify({ locations: payloadLocations, claimRef, address }),
       })
       const data = await readJsonOrThrow(res)
       setNote(data.note)
@@ -283,7 +282,7 @@ export default function FieldNotesPage() {
         body: JSON.stringify({
           claimRef,
           address,
-          adjusterName,
+          adjusterName: null,
           content,
           type: 'field-note'
         })
@@ -318,27 +317,15 @@ export default function FieldNotesPage() {
         <div className="space-y-4">
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Claim Ref (last 4)</label>
-                  <input
-                    type="text"
-                    value={claimRef}
-                    onChange={(e) => setClaimRef(e.target.value)}
-                    placeholder="e.g. 7842"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Adjuster Name</label>
-                  <input
-                    type="text"
-                    value={adjusterName}
-                    onChange={(e) => setAdjusterName(e.target.value)}
-                    placeholder="Your name"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
-                  />
-                </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Claim Ref (last 4)</label>
+                <input
+                  type="text"
+                  value={claimRef}
+                  onChange={(e) => setClaimRef(e.target.value)}
+                  placeholder="e.g. 7842"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
+                />
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Property Address</label>
