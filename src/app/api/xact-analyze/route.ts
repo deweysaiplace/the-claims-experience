@@ -26,6 +26,8 @@ Return a JSON object with this exact structure:
   "observations": "one paragraph describing what you see or what is noted in plain language"
 }
 
+Never state an insured's, claimant's, or any other individual's proper name in the "observations" field or anywhere else, even if one appears in the adjuster notes -- refer to them generically as "the insured" or "the homeowner" instead.
+
 Be specific and conservative. Return ONLY the JSON object, no markdown formatting.`
 
 const SUMMARY_PROMPT = `You are an expert insurance property damage adjuster assistant.
@@ -34,6 +36,8 @@ Materials identified: {MATERIALS}
 Damage types: {DAMAGE_TYPES}
 Matched Xactimate line items: {LINE_ITEMS}
 Adjuster notes: {NOTES}
+
+Never state an insured's, claimant's, or any other individual's proper name, even if one appears in the adjuster notes above -- refer to them generically as "the insured" or "the homeowner" instead.
 
 Write only the summary paragraph, no headers or bullets.`
 
