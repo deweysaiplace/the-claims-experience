@@ -16,3 +16,9 @@ None known. One item worth double-checking, not currently blocking: the Field Sc
 
 ### Next Action on Resume
 Field-test the app on real claims in the field tomorrow and report back what breaks or feels off — more valuable right now than further speculative fixes.
+
+**Also:** check the Anthropic (console.anthropic.com) and x.ai (console.x.ai) billing dashboards.
+Claude is now the primary AI provider for every action in the app (changed 2026-08-04), so it's
+the main real cost driver going forward. Jason noticed token usage was already lower than the
+previous week on one dashboard as of 2026-08-04 and wants to understand why before it becomes a
+bigger bill. Also worth a spending cap on both consoles while there — 2 minutes, real safety net.
