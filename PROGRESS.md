@@ -325,6 +325,23 @@ a second bug — re-verify first before touching this code again.**
   so "close, and easy to fix" is the right target, not "always right." Worth scoping properly, not a
   quick add.
 
+- **Real Xactimate price-list coverage has significant category gaps (owner idea, 2026-08-04).**
+  The 2,728-code dataset (`src/data/xactimate-codes.json`) is NOT mostly roofing as it might look --
+  actual breakdown is Framing (629) > Water Damage (393) > Finish Carpentry (378) > Cleaning (355) >
+  Roofing (315), across 89 categories. But several trades that come up in real claims are thin or
+  completely missing: **Flooring (0), Windows (0), Appliances (0)**, Electrical (1), Painting (9),
+  Carpet (2), Plumbing (13), Tile (17). Right now, if Field Scope sees flooring or window damage, it
+  has nothing real to ground against and would fall back on the model's own training knowledge --
+  the exact fabrication risk the rest of tonight's work was about eliminating.
+
+  Owner confirmed: expansion has to be photos of price-sheet pages, same process that built the
+  existing 2,728 (the dataset's own metadata says it came from 94 photographed pages). Deliberately
+  NOT a bulk export/copy from the Xactimate/Xactanalysis system itself -- that's licensed software
+  that would very likely flag or log a bulk data pull, and he doesn't want that scrutiny for what's
+  genuinely just his own reference material. Next step when he's ready: photograph price-sheet pages
+  specifically covering the empty/thin categories above (flooring, windows, electrical, painting,
+  plumbing), same extraction process as before.
+
 ---
 
 ## Context you won't get from the code
