@@ -141,13 +141,39 @@ export default function CodeReferencePage() {
       form.append('mode', mode)
       if (attachedPhotos.length) {
         const prepared = await compressImages(attachedPhotos)
+        console.log(`[ClaimConsult] sending ${prepared.length}/${attachedPhotos.length} photo(s), ${prepared.reduce((sum, p) => sum + p.size, 0)}b total`)
         prepared.forEach((p) => form.append('photos', p))
       }
 
       const res = await fetch('/api/code-reference', { method: 'POST', body: form })
+
+      if (!res.ok) {
+        // A 413 (request too large -- several full-res photos at once) comes
+        // back from Vercel's platform as plain text, not JSON. Calling
+        // res.json() on that throws a cryptic parse error instead of naming
+        // the real problem, so check status before assuming a JSON body.
+        if (res.status === 413) {
+          throw new Error('Photos too large to send together — try attaching 2-3 at a time.')
+        }
+        const contentType = res.headers.get('content-type') || ''
+        const message = contentType.includes('application/json')
+          ? (await res.json()).error
+          : `Request failed (${res.status})`
+        throw new Error(message || `Request failed (${res.status})`)
+      }
+
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setMessages((prev) => [...prev, { role: 'model', content: data.answer }])
+
+      if (attachedPhotos.length && typeof data.photosReceived === 'number' && data.photosReceived < attachedPhotos.length) {
+        const missing = attachedPhotos.length - data.photosReceived
+        console.error(`[ClaimConsult] photo mismatch: sent ${attachedPhotos.length}, server received ${data.photosReceived}`)
+        setMessages((prev) => [...prev, {
+          role: 'model',
+          content: `⚠️ ${missing} of ${attachedPhotos.length} photo${attachedPhotos.length > 1 ? 's' : ''} didn't make it to the AI — treat this answer as text-only.\n\n${data.answer}`,
+        }])
+      } else {
+        setMessages((prev) => [...prev, { role: 'model', content: data.answer }])
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Request failed')
       setMessages((prev) => prev.slice(0, -1))
@@ -277,7 +303,10 @@ export default function CodeReferencePage() {
               past the right edge). */}
           <div className="flex gap-2 mb-2">
             <CameraCapture
-              onCapture={(file) => setPhotos((prev) => [...prev, file])}
+              onCapture={(file) => {
+                console.log(`[ClaimConsult] camera capture -> ${file.name}, ${file.size}b, ${file.type}`)
+                setPhotos((prev) => [...prev, file])
+              }}
               label=""
               className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
             />
@@ -295,7 +324,13 @@ export default function CodeReferencePage() {
               multiple
               className="hidden"
               onChange={(e) => {
-                if (e.target.files) setPhotos((prev) => [...prev, ...Array.from(e.target.files!)])
+                if (e.target.files) {
+                  const picked = Array.from(e.target.files)
+                  console.log(`[ClaimConsult] gallery select -> ${picked.length} file(s): ${picked.map((f) => `${f.name} (${f.size}b)`).join(', ')}`)
+                  setPhotos((prev) => [...prev, ...picked])
+                } else {
+                  console.error('[ClaimConsult] gallery picker onChange fired with no files')
+                }
                 e.target.value = ''
               }}
             />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { Camera, X } from 'lucide-react'
 
 interface CameraCaptureProps {
@@ -55,13 +55,23 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
       })
       streamRef.current = stream
       setOpen(true)
-      requestAnimationFrame(() => {
-        if (videoRef.current) videoRef.current.srcObject = stream
-      })
-    } catch {
+    } catch (err) {
+      console.error('[CameraCapture] getUserMedia failed, falling back to native picker:', err)
       fallbackInputRef.current?.click()
     }
   }
+
+  // requestAnimationFrame right after setOpen(true) was a guess that the
+  // <video> element would already be mounted by the time it fired -- it
+  // isn't always, especially on a slower phone, which left videoRef.current
+  // null and the stream never attached: a black preview with no error.
+  // A useEffect keyed on `open` runs after React actually commits the
+  // mounted <video>, so the ref is reliably there.
+  useEffect(() => {
+    if (open && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+    }
+  }, [open])
 
   const close = () => {
     stopStream()
@@ -71,6 +81,12 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
   const captureFromVideoFrame = () => {
     const video = videoRef.current
     if (!video) return
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      // The stream never actually attached (or hasn't started decoding
+      // frames yet) -- this is the "capture does nothing" failure mode.
+      // Surfacing it beats a silent no-op.
+      console.error('[CameraCapture] video has no frame data (videoWidth/videoHeight = 0) -- stream not attached, capture will fail')
+    }
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
@@ -79,6 +95,7 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
     ctx.drawImage(video, 0, 0)
     canvas.toBlob((blob) => {
       if (blob) onCapture(new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' }))
+      else console.error('[CameraCapture] canvas.toBlob returned null -- no photo captured')
       close()
     }, 'image/jpeg', 0.92)
   }
@@ -127,7 +144,11 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
 
       {open && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
-          <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" />
+          {/* min-h-0 overrides the flex item's default auto min-height --
+              without it, the video's intrinsic aspect ratio refuses to
+              shrink below its natural size in a short (landscape) flex
+              column, overflowing and pushing the capture button off-screen. */}
+          <video ref={videoRef} autoPlay playsInline muted className="flex-1 min-h-0 w-full object-cover" />
           <div className="flex items-center justify-between p-4 bg-black/80">
             <button onClick={close} aria-label="Cancel" className="p-3 rounded-full bg-slate-800 text-white">
               <X className="w-6 h-6" />

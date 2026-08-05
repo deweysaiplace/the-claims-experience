@@ -82,6 +82,8 @@ export async function POST(request: NextRequest) {
     const photos = formData.getAll('photos') as File[]
     const history = JSON.parse(historyRaw) as Array<{ role: string; content: string }>
 
+    console.log(`[code-reference] received ${photos.length} photo(s), ${photos.reduce((sum, p) => sum + p.size, 0)}b total`)
+
     if (!question.trim() && photos.length === 0) {
       return NextResponse.json({ error: 'Question is required' }, { status: 400 })
     }
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
       : buildLookupSystemPrompt(codeReference)
 
     const { text, provider } = await generateWithFallback(prompt, systemPrompt, base64Images)
-    return NextResponse.json({ success: true, answer: text, provider })
+    return NextResponse.json({ success: true, answer: text, provider, photosReceived: photos.length })
   } catch (err: unknown) {
     // The provider errors are long JSON blobs that used to render verbatim in
     // the chat. Keep the detail in the logs and hand the UI a readable line.
