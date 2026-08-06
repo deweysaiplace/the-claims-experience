@@ -94,3 +94,33 @@ export function formatCodesForPrompt(entries: XactimateCodeEntry[]): string {
 export function getRelevantCodesText(queryText: string, maxCodes = 500): string {
   return formatCodesForPrompt(getRelevantCodes(queryText, maxCodes))
 }
+
+/**
+ * Unlike getRelevantCodes, this never pads with round-robin filler from
+ * unrelated categories -- it returns only codes that actually scored a
+ * keyword/category match, capped at maxCodes. Used by Claim Consult/Lookup,
+ * where most turns (small talk, non-code questions) shouldn't ship any code
+ * block at all rather than ~500 irrelevant codes on every message.
+ */
+export function getFocusedCodes(queryText: string, maxCodes = 120): XactimateCodeEntry[] {
+  const queryWords = tokenize(queryText)
+
+  const scored = ALL_CODES.map((entry) => {
+    let score = 0
+    for (const kw of entry.keywords) if (queryWords.has(kw.toLowerCase())) score += 2
+    for (const word of tokenize(entry.category)) if (queryWords.has(word)) score += 1
+    return { entry, score }
+  })
+
+  return scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((s) => s.entry)
+    .slice(0, maxCodes)
+}
+
+/** Empty string when nothing matched -- callers should skip the code-reference section entirely rather than render an empty header. */
+export function getFocusedCodesText(queryText: string, maxCodes = 120): string {
+  const entries = getFocusedCodes(queryText, maxCodes)
+  return entries.length > 0 ? formatCodesForPrompt(entries) : ''
+}
