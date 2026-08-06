@@ -27,6 +27,11 @@ async function tryGrok(
   prompt: string,
   systemInstruction?: string,
   base64Images?: string[]
+  // No base64Pdfs param here -- xAI's chat completions API doesn't accept a
+  // PDF content block the way Claude/Gemini do, and Grok only ever runs as a
+  // backup (Claude tries first; Gemini is checked before Grok in the backup
+  // race). Silently dropping PDFs on this one path is an acceptable fallback
+  // gap, not a blocker.
 ): Promise<AIFallbackResponse | null> {
   if (!process.env.GROK_API_KEY) return null
 
@@ -67,7 +72,8 @@ async function tryGrok(
 async function tryGemini(
   prompt: string,
   systemInstruction?: string,
-  base64Images?: string[]
+  base64Images?: string[],
+  base64Pdfs?: string[]
 ): Promise<AIFallbackResponse | null> {
   if (!process.env.GEMINI_API_KEY) return null
 
@@ -77,6 +83,9 @@ async function tryGemini(
   const contents: any[] = []
   for (const img of base64Images ?? []) {
     contents.push({ inlineData: { data: img, mimeType: detectMimeType(img) } })
+  }
+  for (const pdf of base64Pdfs ?? []) {
+    contents.push({ inlineData: { data: pdf, mimeType: 'application/pdf' } })
   }
   contents.push({ text: prompt })
 
@@ -92,7 +101,8 @@ async function tryGemini(
 async function tryClaude(
   prompt: string,
   systemInstruction?: string,
-  base64Images?: string[]
+  base64Images?: string[],
+  base64Pdfs?: string[]
 ): Promise<AIFallbackResponse | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null
 
@@ -104,6 +114,12 @@ async function tryClaude(
     content.push({
       type: 'image',
       source: { type: 'base64', media_type: detectMimeType(img), data: img },
+    })
+  }
+  for (const pdf of base64Pdfs ?? []) {
+    content.push({
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: pdf },
     })
   }
   content.push({ type: 'text', text: prompt })
@@ -138,7 +154,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 export async function generateWithFallback(
   prompt: string,
   systemInstruction?: string,
-  base64Images?: string[] // Optional array of base64 images (without data URI prefix)
+  base64Images?: string[], // Optional array of base64 images (without data URI prefix)
+  base64Pdfs?: string[] // Optional array of base64 PDFs (without data URI prefix) -- Claude and Gemini only, see tryGrok
 ): Promise<AIFallbackResponse> {
   const errors: string[] = []
   // A real reconcile run (5 photos, 8-section structured output) hit even
@@ -156,7 +173,7 @@ export async function generateWithFallback(
   const claudeStart = Date.now()
   try {
     const claude = await withTimeout(
-      tryClaude(prompt, systemInstruction, base64Images),
+      tryClaude(prompt, systemInstruction, base64Images, base64Pdfs),
       CLAUDE_TIMEOUT_MS,
       'Claude'
     )
@@ -181,7 +198,7 @@ export async function generateWithFallback(
   ]
   const settled = await Promise.allSettled(
     backups.map(({ fn, label }) =>
-      withTimeout(fn(prompt, systemInstruction, base64Images), BACKUP_TIMEOUT_MS, label)
+      withTimeout(fn(prompt, systemInstruction, base64Images, base64Pdfs), BACKUP_TIMEOUT_MS, label)
     )
   )
 

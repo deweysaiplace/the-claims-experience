@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { FileText, MessageCircle, Send, Loader2, Copy, Check, Mic, MicOff } from 'lucide-react'
+import { FileText, MessageCircle, Send, Loader2, Copy, Check, Mic, MicOff, Upload } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import ReactMarkdown from 'react-markdown'
 import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
+import { compressImages } from '@/lib/compress-image'
+import { readJsonOrThrow } from '@/lib/upload'
 
 interface Message {
   role: 'user' | 'model'
@@ -32,6 +34,9 @@ export default function PolicyChatPage() {
   const [isListening, setIsListening] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [extractError, setExtractError] = useState('')
   // What the input held before this listening session started -- new speech
   // is combined onto this, not appended call-by-call. See onresult comment.
   const micBaselineRef = useRef('')
@@ -116,6 +121,31 @@ export default function PolicyChatPage() {
     loadDocs()
   }, [])
 
+  const handleDocsSelected = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return
+    const files = Array.from(fileList)
+    setExtracting(true)
+    setExtractError('')
+
+    try {
+      // PDFs pass through compressImages untouched -- it only re-encodes image/* files.
+      const prepared = await compressImages(files)
+      const form = new FormData()
+      prepared.forEach((f) => form.append('files', f))
+
+      const res = await fetch('/api/policy-chat/extract', { method: 'POST', body: form })
+      const data = await readJsonOrThrow(res)
+
+      setPolicyText((prev) =>
+        prev.trim() ? `${prev}\n\n=========================================\n\n${data.extractedText}` : data.extractedText
+      )
+    } catch (err: unknown) {
+      setExtractError(err instanceof Error ? err.message : 'Extraction failed')
+    } finally {
+      setExtracting(false)
+    }
+  }
+
   const sendMessage = async (question: string) => {
     if (!question.trim() || loading || !policyText.trim()) return
     const q = question.trim()
@@ -168,18 +198,38 @@ export default function PolicyChatPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white text-sm">Policy Document</CardTitle>
-                {policyText && (
+                <div className="flex items-center gap-1.5">
                   <button
-                    onClick={handleCopyPolicy}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+                    onClick={() => docInputRef.current?.click()}
+                    disabled={extracting}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors disabled:opacity-50"
+                    title="Upload policy document photos or PDF"
                   >
-                    {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                    {copied ? 'Copied!' : 'Copy'}
+                    {extracting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    {extracting ? 'Reading…' : 'Upload'}
                   </button>
-                )}
+                  <input
+                    ref={docInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => { handleDocsSelected(e.target.files); e.target.value = '' }}
+                  />
+                  {policyText && (
+                    <button
+                      onClick={handleCopyPolicy}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+                    >
+                      {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
+              {extractError && <p className="text-red-400 text-xs mb-2">{extractError}</p>}
               {policyText ? (
                 <div className="max-h-96 overflow-y-auto pr-2">
                   <pre className="text-xs text-slate-400 whitespace-pre-wrap font-mono leading-relaxed">
@@ -190,7 +240,7 @@ export default function PolicyChatPage() {
                 <div className="flex flex-col items-center justify-center py-8 text-slate-600">
                   <FileText className="w-12 h-12 mb-3 opacity-20" />
                   <p className="text-sm text-center">No policy document loaded</p>
-                  <p className="text-xs mt-1 text-center">Extract text from a video in Site Walkthroughs, or paste policy text here</p>
+                  <p className="text-xs mt-1 text-center">Upload photos or a PDF of the policy above, or paste text below</p>
                 </div>
               )}
             </CardContent>
@@ -237,7 +287,7 @@ export default function PolicyChatPage() {
                 <div className="flex flex-col items-center justify-center h-full text-slate-600 py-12">
                   <MessageCircle className="w-16 h-16 mb-4 opacity-20" />
                   <p className="text-sm">Load a policy document to start chatting</p>
-                  <p className="text-xs mt-1">Extract from video or paste text above</p>
+                  <p className="text-xs mt-1">Upload photos/PDF or paste text above</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-600 py-12">
