@@ -1,0 +1,50 @@
+// Merges a reviewed/approved batch of extracted Xactimate codes into the
+// live src/data/xactimate-codes.json. Adds new codes, updates existing ones
+// (the reviewed data is trusted over whatever the original 94-photo
+// extraction produced for the same code), generates the `keywords` field
+// every entry needs (xactimate-codes-search.ts iterates it directly --
+// missing it would crash retrieval at runtime), and strips the review-only
+// `lowConfidence` flag before it reaches the live file.
+const fs = require('fs');
+const path = require('path');
+
+const mergedPath = path.join(__dirname, '../src/data/xact-merged-2026-08-05.json');
+const prodPath = path.join(__dirname, '../src/data/xactimate-codes.json');
+
+const batch = JSON.parse(fs.readFileSync(mergedPath, 'utf8'));
+const prod = JSON.parse(fs.readFileSync(prodPath, 'utf8'));
+
+function tokenize(text) {
+  const words = (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length > 2);
+  return [...new Set(words)];
+}
+
+const byCode = new Map(prod.codes.map((c) => [c.code, c]));
+let added = 0;
+let updated = 0;
+
+for (const item of batch) {
+  const entry = {
+    code: item.code,
+    description: item.description,
+    category: item.category,
+    unit: item.unit,
+    keywords: tokenize(item.description),
+  };
+  if (byCode.has(item.code)) {
+    updated++;
+  } else {
+    added++;
+  }
+  byCode.set(item.code, entry);
+}
+
+const allCodes = Array.from(byCode.values());
+prod.codes = allCodes;
+prod.version = '3.1';
+prod.description = `Xactimate price list -- extracted from 94 field photos plus a 2026-08-05 batch of Jason's own price-sheet spreadsheet photos, deduplicated. ${allCodes.length} codes.`;
+prod.generatedAt = '2026-08-05';
+
+fs.writeFileSync(prodPath, JSON.stringify(prod, null, 2));
+console.log(`Added ${added} new codes, updated ${updated} existing codes.`);
+console.log(`Production dataset now has ${allCodes.length} total codes.`);
