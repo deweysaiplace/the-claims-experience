@@ -8,7 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const mergedPath = path.join(__dirname, '../src/data/xact-merged-2026-08-05.json');
+const mergedFile = process.argv[2] || 'xact-merged-2026-08-05.json';
+const mergedPath = path.join(__dirname, '../src/data/', mergedFile);
 const prodPath = path.join(__dirname, '../src/data/xactimate-codes.json');
 
 const batch = JSON.parse(fs.readFileSync(mergedPath, 'utf8'));
@@ -41,9 +42,10 @@ for (const item of batch) {
 
 const allCodes = Array.from(byCode.values());
 prod.codes = allCodes;
-prod.version = '3.1';
-prod.description = `Xactimate price list -- extracted from 94 field photos plus a 2026-08-05 batch of Jason's own price-sheet spreadsheet photos, deduplicated. ${allCodes.length} codes.`;
-prod.generatedAt = '2026-08-05';
+const nextMinor = Math.round((parseFloat(prod.version) + 0.1) * 10) / 10;
+prod.version = String(nextMinor);
+prod.description = `Xactimate price list -- extracted from 94 field photos plus multiple 2026-08 batches of Jason's own price-sheet spreadsheet photos, deduplicated. ${allCodes.length} codes.`;
+prod.generatedAt = '2026-08-06';
 
 fs.writeFileSync(prodPath, JSON.stringify(prod, null, 2));
 console.log(`Added ${added} new codes, updated ${updated} existing codes.`);
