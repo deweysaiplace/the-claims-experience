@@ -1,5 +1,5 @@
 {
-  "version": "3.3",
+  "version": "3.4",
   "description": "Xactimate price list -- extracted from 94 field photos plus multiple 2026-08 batches of Jason's own price-sheet spreadsheet photos, deduplicated. 12415 codes.",
   "generatedAt": "2026-08-06",
   "source": "xact_codes_deduped.tsv",
@@ -5360,7 +5360,7 @@
     {
       "code": "TRFURN10",
       "description": "Drying furnace - ind. fired heater w/ducting - 85 kBtuh",
-      "category": "TRFURN",
+      "category": "Equipment",
       "unit": "DA",
       "keywords": [
         "drying",
@@ -5376,7 +5376,7 @@
     {
       "code": "TRFURN25",
       "description": "Drying furnace - ind. fired heater w/ducting - 170 kBtuh",
-      "category": "TRFURN",
+      "category": "Equipment",
       "unit": "DA",
       "keywords": [
         "drying",
@@ -5392,7 +5392,7 @@
     {
       "code": "TRFURN40",
       "description": "Drying furnace - ind. fired heater w/ducting - 250 kBtuh",
-      "category": "TRFURN",
+      "category": "Equipment",
       "unit": "DA",
       "keywords": [
         "drying",
@@ -14508,7 +14508,7 @@
     {
       "code": "MBILAB",
       "description": "Tile / Cultured Marble Installer - per hour",
-      "category": "MBILAB",
+      "category": "Tile",
       "unit": "HR",
       "keywords": [
         "tile",
@@ -15829,7 +15829,7 @@
     {
       "code": "TILBFB1/2T",
       "description": "1/2\" foam backer board - wall - sealed with thinset",
-      "category": "TILBFB",
+      "category": "Tile",
       "unit": "SF",
       "keywords": [
         "foam",
@@ -15942,7 +15942,7 @@
     {
       "code": "WDAAVM>++",
       "description": "Aluminum window - mobile home, 24-32 sf, d.p. insulated",
-      "category": "WDAAVM",
+      "category": "Windows",
       "unit": "EA",
       "keywords": [
         "aluminum",
@@ -15957,7 +15957,7 @@
     {
       "code": "WDAAVM>>>+",
       "description": "Aluminum window - mobile home, 33-40 sf, d.p. insulated",
-      "category": "WDAAVM",
+      "category": "Windows",
       "unit": "EA",
       "keywords": [
         "aluminum",
@@ -16042,7 +16042,7 @@
     {
       "code": "WDP8M2",
       "description": "8-0 6-8 bronze sliding patio door insulated (2 panes)",
-      "category": "WDP",
+      "category": "Windows",
       "unit": "EA",
       "keywords": [
         "bronze",
@@ -16056,7 +16056,7 @@
     {
       "code": "WDP8B8M2",
       "description": "8-0 6-8 mill finish sliding patio door insulated (2 panes)",
-      "category": "WDP",
+      "category": "Windows",
       "unit": "EA",
       "keywords": [
         "mill",
@@ -16071,7 +16071,7 @@
     {
       "code": "WDPLAB",
       "description": "Patio Door Installer - per hour",
-      "category": "WDPLAB",
+      "category": "Windows",
       "unit": "HR",
       "keywords": [
         "patio",
@@ -16083,7 +16083,7 @@
     {
       "code": "WDSLAB",
       "description": "Window Installer - per hour",
-      "category": "WDSLAB",
+      "category": "Windows",
       "unit": "HR",
       "keywords": [
         "window",
@@ -16094,7 +16094,7 @@
     {
       "code": "WDTLAB",
       "description": "Window Installer - per hour",
-      "category": "WDTLAB",
+      "category": "Windows",
       "unit": "HR",
       "keywords": [
         "window",
@@ -16105,7 +16105,7 @@
     {
       "code": "WDVLAB",
       "description": "Window Treatments Installer - per hour",
-      "category": "WDVLAB",
+      "category": "Windows",
       "unit": "HR",
       "keywords": [
         "window",
@@ -16117,7 +16117,7 @@
     {
       "code": "WDWLAB",
       "description": "Window Installer - per hour",
-      "category": "WDWLAB",
+      "category": "Windows",
       "unit": "HR",
       "keywords": [
         "window",
@@ -22493,7 +22493,7 @@
     {
       "code": "LBCARPFNC",
       "description": "Carpenter - Finish, Trim / Cabinet - per hour",
-      "category": "LBCARPFNC",
+      "category": "Finish Carpentry",
       "unit": "HR",
       "keywords": [
         "carpenter",
@@ -24509,7 +24509,7 @@
     {
       "code": "WDPSCM+",
       "description": "5-0 6-8 patio door-colored frm-d.p.insulated -mobile home",
-      "category": "WDPSCM",
+      "category": "Windows",
       "unit": "EA",
       "keywords": [
         "patio",
@@ -27152,7 +27152,7 @@
     {
       "code": "LTLSSRFG",
       "description": "Standing seam metal roofing",
-      "category": "LTLSSRFG",
+      "category": "Roofing",
       "unit": "SF",
       "keywords": [
         "standing",
@@ -31716,7 +31716,7 @@
     {
       "code": "NRP5OIS",
       "description": "Lam. Prem gr. imp. comp shng/out felt-per ind mat source",
-      "category": "NRP",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "lam",
@@ -31734,7 +31734,7 @@
     {
       "code": "NRP5LS",
       "description": "Lam. Prem. gr. comp shng. w/out felt - per ind. mat. source",
-      "category": "NRP",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "lam",
@@ -31751,7 +31751,7 @@
     {
       "code": "NRP5HS+",
       "description": "Lam. Shake Premium comp shng. w/out felt - ind mat source",
-      "category": "NRP",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "lam",
@@ -31768,7 +31768,7 @@
     {
       "code": "NRP5SLS",
       "description": "Lam. Standard comp shng. w/out felt - ind mat source",
-      "category": "NRP",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "lam",
@@ -31784,7 +31784,7 @@
     {
       "code": "NRP5LS+",
       "description": "Lam. Slate Premium comp shng. w/out felt - ind mat source",
-      "category": "NRP",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "lam",
@@ -31801,7 +31801,7 @@
     {
       "code": "GNRP5HS",
       "description": "Lam. Shake comp shng. w/out felt - ind mat source",
-      "category": "GNRP",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "lam",
@@ -31817,7 +31817,7 @@
     {
       "code": "GNRP5SLS",
       "description": "Lam. Slate comp shng/out felt - ind mat source",
-      "category": "GNRP",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "lam",
@@ -31833,7 +31833,7 @@
     {
       "code": "GNRPFL30",
       "description": "Roofing felt - 30 lb - per independent material source",
-      "category": "GNRPFL",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "roofing",
@@ -31848,7 +31848,7 @@
     {
       "code": "FGNRPPL",
       "description": "Roll roofing - per independent material source",
-      "category": "FGNRPPL",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "roll",
@@ -31861,7 +31861,7 @@
     {
       "code": "FGNRPPL+",
       "description": "Roll roofing - 50% overlap - per ind. material source",
-      "category": "FGNRPPL",
+      "category": "Roofing",
       "unit": "SQ",
       "keywords": [
         "roll",
@@ -154304,21 +154304,6 @@
       ]
     },
     {
-      "code": "TMPGN175W",
-      "description": "Generator - 175-250KW (per week - 8 hour) - no monitoring",
-      "category": "Temporary Repairs",
-      "unit": "WK",
-      "keywords": [
-        "generator",
-        "175",
-        "250kw",
-        "per",
-        "week",
-        "hour",
-        "monitoring"
-      ]
-    },
-    {
       "code": "TMPGN175WT",
       "description": "Generator - 175-250KW (per week - 24 hour) - no monitoring",
       "category": "Temporary Repairs",
@@ -162223,20 +162208,6 @@
     {
       "code": "HVCACCND<",
       "description": "Central air - condenser unit - 2 ton - up to 13 SEER",
-      "category": "HVAC",
-      "unit": "EA",
-      "keywords": [
-        "central",
-        "air",
-        "condenser",
-        "unit",
-        "ton",
-        "seer"
-      ]
-    },
-    {
-      "code": "HVCACCND>>",
-      "description": "Central air - condenser unit - 4 ton - up to 13 SEER",
       "category": "HVAC",
       "unit": "EA",
       "keywords": [
