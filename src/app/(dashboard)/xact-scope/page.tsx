@@ -8,7 +8,7 @@ import {
 import XactPhotoUpload from '@/components/xact/PhotoUpload'
 import XactResultsPanel from '@/components/xact/ResultsPanel'
 import CameraCapture from '@/components/CameraCapture'
-import { getTotalCodeCount, getAllCategories, getCodesByCategory } from '@/lib/code-matcher'
+import type { XactimateCode } from '@/lib/code-matcher'
 import { compressImage, compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
 import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
@@ -65,6 +65,9 @@ export default function XactScopePage() {
   const [browseQuery, setBrowseQuery] = useState('')
   const [browseCategory, setBrowseCategory] = useState('All')
   const [categories, setCategories] = useState<string[]>(['All'])
+  const [browseCodes, setBrowseCodes] = useState<XactimateCode[]>([])
+  const [browseMatchCount, setBrowseMatchCount] = useState(0)
+  const [codeCount, setCodeCount] = useState(0)
 
   // Policy
   const [policyText, setPolicyText] = useState('')
@@ -74,12 +77,26 @@ export default function XactScopePage() {
   const [policyError, setPolicyError] = useState('')
   const policyBottomRef = useRef<HTMLDivElement>(null)
 
-  let codeCount = 0
-  try { codeCount = getTotalCodeCount() } catch {}
-
+  // Debounced: filtering/slicing happens server-side (see /api/xact-codes) so
+  // the client never has to load the full code dataset to browse or search it.
   useEffect(() => {
-    try { setCategories(['All', ...getAllCategories()]) } catch {}
-  }, [])
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams()
+      if (browseCategory !== 'All') params.set('category', browseCategory)
+      if (browseQuery.trim()) params.set('q', browseQuery.trim())
+      fetch(`/api/xact-codes?${params.toString()}`, { signal: controller.signal })
+        .then((r) => r.json())
+        .then((d) => {
+          setCodeCount(d.totalCount)
+          setCategories(['All', ...d.categories])
+          setBrowseCodes(d.codes)
+          setBrowseMatchCount(d.matchCount)
+        })
+        .catch(() => {})
+    }, 200)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [browseCategory, browseQuery])
 
   useEffect(() => {
     policyBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -153,22 +170,6 @@ export default function XactScopePage() {
       setPolicyMsgs(prev => prev.slice(0, -1))
     } finally { setPolicyLoading(false) }
   }
-
-  // Browse: derive visible codes
-  let browseCodes: ReturnType<typeof getCodesByCategory> = []
-  try {
-    const pool = browseCategory === 'All'
-      ? getAllCategories().flatMap(c => getCodesByCategory(c))
-      : getCodesByCategory(browseCategory)
-    const q = browseQuery.toLowerCase()
-    browseCodes = q
-      ? pool.filter(c =>
-          c.code.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q) ||
-          c.keywords.some(k => k.includes(q))
-        )
-      : pool
-  } catch {}
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -351,12 +352,12 @@ export default function XactScopePage() {
           </div>
 
           <p className="text-xs text-slate-600 px-1">
-            {browseCodes.length.toLocaleString()} code{browseCodes.length !== 1 ? 's' : ''}
+            {browseMatchCount.toLocaleString()} code{browseMatchCount !== 1 ? 's' : ''}
             {browseQuery || browseCategory !== 'All' ? ' matching' : ' total'}
           </p>
 
           <div className="space-y-1 max-h-[62dvh] overflow-y-auto pr-1">
-            {browseCodes.slice(0, 200).map(c => (
+            {browseCodes.map(c => (
               <div key={c.code} className="flex items-center gap-3 px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
                 <span className="font-mono font-bold text-blue-400 text-sm w-36 flex-shrink-0">{c.code}</span>
                 <span className="text-slate-300 text-sm flex-1 min-w-0 truncate">{c.description}</span>
@@ -364,8 +365,8 @@ export default function XactScopePage() {
                 <span className="text-xs text-slate-600 hidden md:block flex-shrink-0 w-36 truncate text-right">{c.category}</span>
               </div>
             ))}
-            {browseCodes.length > 200 && (
-              <p className="text-center text-xs text-slate-600 py-3">Showing 200 of {browseCodes.length.toLocaleString()} — refine search to see more</p>
+            {browseMatchCount > 200 && (
+              <p className="text-center text-xs text-slate-600 py-3">Showing 200 of {browseMatchCount.toLocaleString()} — refine search to see more</p>
             )}
           </div>
         </div>
