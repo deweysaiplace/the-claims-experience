@@ -10,8 +10,6 @@ import { readJsonOrThrow } from '@/lib/upload'
 import CameraCapture from '@/components/CameraCapture'
 import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
 
-const WORKER_API = process.env.NEXT_PUBLIC_WORKER_API_URL || 'https://claims-worker.hijasond.workers.dev'
-
 function MultiPageDropzone({
   label,
   files,
@@ -186,12 +184,12 @@ export default function EngineerScopePage() {
       form.append('claimRef', claimRef)
       form.append('address', address)
 
-      // Unlike every AI route in this app (see ai-fallback.ts), a call to
-      // the external Cloudflare Worker has no server-side timeout wrapper --
-      // if the worker hangs, this fetch would otherwise wait indefinitely
-      // with no resolution. AbortController gives it a real ceiling and a
-      // clear error instead of a spinner that never ends.
-      const apiUrl = `${WORKER_API}/engineer-scope`
+      // Proxied through this app's own /api/engineer-scope route rather than
+      // calling the Cloudflare Worker directly -- keeps the Worker's URL and
+      // auth secret server-side only instead of shipping in the client bundle.
+      // AbortController still gives it a real ceiling: if the worker hangs,
+      // this fetch would otherwise wait indefinitely with no resolution.
+      const apiUrl = '/api/engineer-scope'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 120_000)
       let res: Response

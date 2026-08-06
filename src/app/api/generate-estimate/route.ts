@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
             const workerRes = await fetch(`${WORKER_API}/generate-estimate`, {
               method: 'POST',
+              headers: { 'X-Worker-Secret': process.env.WORKER_SHARED_SECRET || '' },
               body: workerForm
             })
             if (!workerRes.ok) {
