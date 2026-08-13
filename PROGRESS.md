@@ -211,15 +211,15 @@ a second bug — re-verify first before touching this code again.**
 
 **Still open:**
 
-11. **Reconciler's single mega-prompt architecture is the deeper reliability risk, not fully
-    addressed tonight.** One AI call reads both multi-page estimates, compares them, and drafts an
-    email + file note, all at once — a blurry page anywhere in either estimate degrades the whole
-    output, and there's no way to tell which side failed. A real fix would split this into stages:
-    extract Estimate A to structured line items, extract Estimate B separately (could run in
-    parallel, each call simpler/faster than today's combined one), then diff and draft as a final
-    step. Would likely be both more reliable and more debuggable — if one side comes back garbled,
-    the owner would know exactly which photos to retake instead of a blanket "not legible." This is
-    a real rebuild, not a tonight-sized fix; deliberately not started.
+11. ~~Reconciler's single mega-prompt architecture~~ — **closed, 2026-08-13.** Split into a
+    3-stage pipeline in `src/app/api/reconcile/route.ts`: extract Estimate A and Estimate B
+    independently in parallel (image-only, each flags its own unreadable pages and
+    within-estimate double-billing), then a text-only diff/draft stage produces the same
+    7-section report as before. `maxDuration` raised 120s → 180s. Verified against a live
+    Claude API run with two synthetic estimates before deploy — correctly matched
+    differently-worded line items, caught a quantity variance, flagged a missing item, and
+    caught a double-billing concern. Same fix also caught PDFs uploaded to the reconciler
+    being sent to the AI mislabeled as images (now split like `policy-chat/extract` does).
 
 7. **Add live web search to Code Reference.** Needs the owner to pick a search API (Tavily, Brave,
    Google Custom Search) and get a key — deferred, not a code task tonight.
