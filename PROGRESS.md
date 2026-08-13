@@ -224,13 +224,9 @@ a second bug — re-verify first before touching this code again.**
 7. **Add live web search to Code Reference.** Needs the owner to pick a search API (Tavily, Brave,
    Google Custom Search) and get a key — deferred, not a code task tonight.
 
-8. **The Cloudflare Worker (`claims-worker.hijasond.workers.dev`) has no authentication.**
-   Its URL is public (ships in the client JS bundle via `NEXT_PUBLIC_WORKER_API_URL`). CORS is set
-   to only allow the app's own origin, but CORS does not stop a direct `curl`/script call — only
-   browser-based cross-origin requests. Anyone who finds the URL can burn AI tokens on the owner's
-   account with no login. Lives in a separate project, `CascadeProjects/claims-worker`, which is
-   **also not a git repo** — same backup risk as everything else tonight. Owner's call on priority;
-   not touched, since it's a different codebase from this one.
+8. ~~The Cloudflare Worker (`claims-worker.hijasond.workers.dev`) had no authentication~~ —
+   **closed, 2026-08-06.** Now requires a shared secret (commit `4fde0ce`). The separate
+   `claims-worker` project's git-repo status wasn't re-checked as part of that fix.
 
 9. **Screen consolidation — explicitly parked by the owner (2026-08-02).** He's actively using all 8
    current screens (`code-reference`, `engineer-scope`, `field-notes`, `field-scope`, `policy-chat`,

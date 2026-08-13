@@ -1,24 +1,29 @@
 ## Current Status
-Last Updated: 2026-08-04
+Last Updated: 2026-08-13
 
-### Completed This Session
-- Fixed reliability across the board: AI provider timeouts rebalanced (Claude primary), camera capture switched to real high-res photos (was silently producing blurry images), mobile viewport bugs (100vh→100dvh) fixed in 7+ places, elapsed-time feedback added to every AI wait
-- Reconciler accuracy overhaul: grounded on the real 2,728-code price list, fixed line-item matching/unit-normalization/direction-clarity gaps, added researched double-billing patterns, fixed fake example codes, removed dead double-encoding code
-- PII scrubbing closed across every live generation route (Field Scope, Field Note, Code Reference, Reconcile, Policy Chat, Xact Analyze) — was a real, confirmed leak before tonight
-- Unified naming: folder, GitHub repo, and Vercel project all now "the-claims-experience" (live URL unchanged, zero disruption)
-- Added Claim Consult mode to Code Reference (talk through a live claim scenario, not just code lookups) plus voice dictation
-- Removed the Adjuster Name field entirely (always the same person, not worth a UI field)
-- Archived stale root scripts to scripts/archived/ (not deleted)
-- Everything committed and pushed to GitHub — local and origin are in sync
+### Completed Since Last Update (2026-08-04 → 2026-08-13)
+- **Closed open issue 8:** Cloudflare Worker (`claims-worker`) now requires a shared secret — was
+  publicly callable with no auth, burnable by anyone who found the URL.
+- Xactimate dataset expanded by ~2,400 codes from photo batches 11-90, then cleaned up (fixed
+  mislabeled categories, dropped unconfirmed codes).
+- Xact Scope no longer ships the full Xactimate dataset to the browser.
+- Cost cuts: Claude switched from Opus to Sonnet 5, per-message token overhead trimmed in Claim
+  Consult/Lookup.
+- Added photo/PDF upload to Policy Chat.
+- **This session (2026-08-13):** fixed a real silent-failure bug — `tryClaude()` in
+  `ai-fallback.ts` only checked `msg.content[0]` for a text block; if Claude returned a non-text
+  block first, the whole call was treated as "no answer" and silently fell through to the next
+  provider. Now searches all blocks for the first text one. Also dropped a stale error message
+  still referencing Gemini's daily limit. Typechecked, built, deployed to prod, pushed to GitHub.
 
 ### Active Issues / Blockers
-None known. One item worth double-checking, not currently blocking: the Field Scope "dead gap" viewport fix (100vh→100dvh) is deployed but has never been confirmed against a live repro of the original bug.
+None known. Still unconfirmed (carried over, not touched this pass): the Field Scope 100vh→100dvh
+viewport fix has never been verified against a live repro of the original bug.
 
 ### Next Action on Resume
-Field-test the app on real claims in the field tomorrow and report back what breaks or feels off — more valuable right now than further speculative fixes.
+Same as last time and still true: field-test beats speculative fixes. Remaining open items (see
+PROGRESS.md) — Reconciler mega-prompt split (bigger rebuild, not started), web search for Code
+Reference (needs Jason to pick an API/key), screen consolidation (parked, don't touch).
 
-**Also:** check the Anthropic (console.anthropic.com) and x.ai (console.x.ai) billing dashboards.
-Claude is now the primary AI provider for every action in the app (changed 2026-08-04), so it's
-the main real cost driver going forward. Jason noticed token usage was already lower than the
-previous week on one dashboard as of 2026-08-04 and wants to understand why before it becomes a
-bigger bill. Also worth a spending cap on both consoles while there — 2 minutes, real safety net.
+**Also still open:** check Anthropic/x.ai billing dashboards and consider a spending cap — this
+was flagged 2026-08-04 and there's no record it got done.
