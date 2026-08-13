@@ -131,8 +131,12 @@ async function tryClaude(
     messages: [{ role: 'user', content }],
   })
 
-  const first = msg.content?.[0]
-  return first?.type === 'text' ? { text: first.text, provider: 'claude' } : null
+  const textBlock = msg.content?.find((b) => b.type === 'text')
+  if (!textBlock) {
+    console.error('Claude returned no text block:', msg.stop_reason, msg.content?.map((b) => b.type))
+    return null
+  }
+  return { text: textBlock.text, provider: 'claude' }
 }
 
 /**

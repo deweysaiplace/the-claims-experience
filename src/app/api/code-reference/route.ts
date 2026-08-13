@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     console.error('code-reference failed:', detail)
 
     const friendly = detail.includes('All AI providers failed')
-      ? 'No AI provider is available right now. Gemini may be over its daily free-tier limit, and the other providers are unavailable. Check the server logs for details.'
+      ? 'No AI provider is available right now. Check the server logs for details.'
       : 'Something went wrong answering that. Check the server logs for details.'
 
     return NextResponse.json({ error: friendly, detail }, { status: 500 })
