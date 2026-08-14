@@ -140,7 +140,11 @@ export default function CodeReferencePage() {
       form.append('history', JSON.stringify(history))
       form.append('mode', mode)
       if (attachedPhotos.length) {
-        const prepared = await compressImages(attachedPhotos)
+        // Lookup mode photos are photographed price-sheet/document pages —
+        // grayscale is a free size win there. Consult mode photos are real
+        // property damage shots, where staining/discoloration/matching are
+        // often the whole point, so color has to survive compression.
+        const prepared = await compressImages(attachedPhotos, undefined, mode !== 'consult')
         console.log(`[ClaimConsult] sending ${prepared.length}/${attachedPhotos.length} photo(s), ${prepared.reduce((sum, p) => sum + p.size, 0)}b total`)
         prepared.forEach((p) => form.append('photos', p))
       }
@@ -305,6 +309,15 @@ export default function CodeReferencePage() {
             <CameraCapture
               onCapture={(file) => {
                 console.log(`[ClaimConsult] camera capture -> ${file.name}, ${file.size}b, ${file.type}`)
+                // Live getUserMedia captures are always re-encoded to JPEG in
+                // CameraCapture itself, but its native-picker fallback (when
+                // getUserMedia is unavailable/denied) hands back whatever the
+                // OS camera app produced -- same HEIC risk as the gallery
+                // picker below, so apply the same guard here.
+                if (/\.hei[cf]$/i.test(file.name) || /^image\/hei[cf]$/i.test(file.type)) {
+                  setError('That photo came through as HEIC, which the AI can\'t read. Switch iPhone Settings → Camera → Formats to "Most Compatible", or try again — this button usually captures JPEG directly.')
+                  return
+                }
                 setPhotos((prev) => [...prev, file])
               }}
               label=""
@@ -327,7 +340,25 @@ export default function CodeReferencePage() {
                 if (e.target.files) {
                   const picked = Array.from(e.target.files)
                   console.log(`[ClaimConsult] gallery select -> ${picked.length} file(s): ${picked.map((f) => `${f.name} (${f.size}b)`).join(', ')}`)
-                  setPhotos((prev) => [...prev, ...picked])
+                  // iPhones save camera-roll photos as HEIC by default. Chrome
+                  // can't decode HEIC in the canvas pipeline compressImage
+                  // relies on -- createImageBitmap silently fails and the raw
+                  // HEIC bytes go out mislabeled as JPEG, so the AI receives
+                  // data it can't actually read and reports back that nothing
+                  // came through, with no error surfaced anywhere along the
+                  // way. Reject those here, at attach time, with a message
+                  // that says what's actually wrong instead of letting it
+                  // fail silently three steps downstream.
+                  const heic = picked.filter((f) => /\.hei[cf]$/i.test(f.name) || /^image\/hei[cf]$/i.test(f.type))
+                  const usable = picked.filter((f) => !heic.includes(f))
+                  if (heic.length) {
+                    setError(
+                      `${heic.length} photo${heic.length > 1 ? 's' : ''} skipped — HEIC format isn't readable by the AI. ` +
+                      `In iPhone Settings → Camera → Formats, switch to "Most Compatible" so new photos save as JPEG, ` +
+                      `or use the camera button above to shoot directly in the app.`
+                    )
+                  }
+                  if (usable.length) setPhotos((prev) => [...prev, ...usable])
                 } else {
                   console.error('[ClaimConsult] gallery picker onChange fired with no files')
                 }

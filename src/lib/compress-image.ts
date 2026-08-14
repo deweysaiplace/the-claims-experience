@@ -4,17 +4,24 @@
  * plain text ("Request Entity Too Large"), calling res.json() on it fails with
  * "Unexpected token 'R'" rather than anything that names the real problem.
  *
- * Downscale and re-encode client-side before upload. These are photographed
- * text documents (Xactimate line items), not scenery — color carries no
- * information a vision model needs to read them, so converting to grayscale
- * shrinks the file with no cost to legibility. Resolution also scales down
+ * Downscale and re-encode client-side before upload. Resolution scales down
  * as the total page count grows: a 9-page reconcile run sends every image to
  * the AI in one combined request, so more pages means each one needs to be
  * lighter to keep the whole request — and the API cost — reasonable.
+ *
+ * Grayscale is opt-in via `grayscale` (default true) — it's a free size win
+ * for photographed line-item text/price sheets, where color carries no
+ * information a vision model needs to read them. It is NOT free for a real
+ * damage photo: staining, discoloration, matching/mismatch between siding or
+ * shingle courses, and mold are identified by color, and flattening them to
+ * gray is exactly the kind of thing that leaves the model unable to make out
+ * what's in the shot. Callers sending live property photos (e.g. Claim
+ * Consult) must pass `grayscale: false`.
  */
 export async function compressImage(
   file: File,
-  totalPageCount = 1
+  totalPageCount = 1,
+  grayscale = true
 ): Promise<File> {
   if (!file.type.startsWith('image/')) return file
 
@@ -46,9 +53,8 @@ export async function compressImage(
     return file
   }
 
-  // Grayscale: photographed line-item text, not a photo where color carries
-  // meaning — this is a free size reduction with no legibility cost.
-  ctx.filter = 'grayscale(1)'
+  // See function doc — only safe to flatten color for document photos.
+  if (grayscale) ctx.filter = 'grayscale(1)'
   ctx.drawImage(bitmap, 0, 0, width, height)
   bitmap.close()
 
@@ -69,9 +75,11 @@ export async function compressImage(
  * Compress a batch, keeping any that fail as-is. Pass totalPageCount as the
  * COMBINED count across both estimates (A + B) — that's what actually
  * determines the size of the single AI request this batch feeds into, not
- * just the size of this one side.
+ * just the size of this one side. Pass `grayscale: false` for real property
+ * photos (see compressImage doc) — leave it default (true) for photographed
+ * documents/price sheets.
  */
-export async function compressImages(files: File[], totalPageCount?: number): Promise<File[]> {
+export async function compressImages(files: File[], totalPageCount?: number, grayscale = true): Promise<File[]> {
   const total = totalPageCount ?? files.length
-  return Promise.all(files.map((f) => compressImage(f, total).catch(() => f)))
+  return Promise.all(files.map((f) => compressImage(f, total, grayscale).catch(() => f)))
 }
