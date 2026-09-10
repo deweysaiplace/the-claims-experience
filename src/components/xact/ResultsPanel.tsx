@@ -27,31 +27,31 @@ const CONFIDENCE_STYLES = {
 function LineItemRow({ item }: { item: MatchedLineItem }) {
   const [expanded, setExpanded] = useState(false)
   return (
-    <div className="border border-slate-700 rounded-lg overflow-hidden">
+    <div className="border border-zinc-700 rounded-lg overflow-hidden">
       <div
-        className="flex items-center justify-between p-3 bg-slate-800/60 hover:bg-slate-800 cursor-pointer transition-colors"
+        className="flex items-center justify-between p-3 bg-zinc-800/60 hover:bg-zinc-800 cursor-pointer transition-colors"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <span className="font-mono font-bold text-blue-400 text-sm bg-blue-600/10 border border-blue-600/20 px-2 py-0.5 rounded whitespace-nowrap">
+          <span className="font-mono font-bold text-amber-400 text-sm bg-amber-700/10 border border-amber-700/20 px-2 py-0.5 rounded whitespace-nowrap">
             {item.code}
           </span>
-          <span className="text-sm text-slate-300 truncate">{item.description}</span>
+          <span className="text-sm text-zinc-300 truncate">{item.description}</span>
         </div>
         <div className="flex items-center gap-2 ml-2 shrink-0">
-          <span className="text-xs text-slate-500 font-medium">{item.unit}</span>
+          <span className="text-xs text-zinc-500 font-medium">{item.unit}</span>
           <span className={cn('text-xs px-2 py-0.5 rounded-full border font-medium', CONFIDENCE_STYLES[item.confidence])}>
             {item.confidence}
           </span>
-          {expanded ? <ChevronUp size={13} className="text-slate-500" /> : <ChevronDown size={13} className="text-slate-500" />}
+          {expanded ? <ChevronUp size={13} className="text-zinc-500" /> : <ChevronDown size={13} className="text-zinc-500" />}
         </div>
       </div>
       {expanded && (
-        <div className="border-t border-slate-700 bg-slate-900/50 px-3 py-2 text-xs text-slate-500 space-y-1">
-          <div><span className="font-semibold text-slate-400">Category:</span> {item.category}</div>
-          <div><span className="font-semibold text-slate-400">Unit:</span> {item.unit}</div>
+        <div className="border-t border-zinc-700 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-500 space-y-1">
+          <div><span className="font-semibold text-zinc-400">Category:</span> {item.category}</div>
+          <div><span className="font-semibold text-zinc-400">Unit:</span> {item.unit}</div>
           {item.matchedOn.length > 0 && (
-            <div><span className="font-semibold text-slate-400">Matched on:</span> {item.matchedOn.join(', ')}</div>
+            <div><span className="font-semibold text-zinc-400">Matched on:</span> {item.matchedOn.join(', ')}</div>
           )}
         </div>
       )}
@@ -98,7 +98,7 @@ export default function XactResultsPanel({ result }: ResultsPanelProps) {
         <h2 className="text-base font-bold text-white">Analysis Results</h2>
         <button
           onClick={copyToClipboard}
-          className="flex items-center gap-2 text-sm px-3 py-1.5 border border-slate-700 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors"
+          className="flex items-center gap-2 text-sm px-3 py-1.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 text-zinc-300 transition-colors"
         >
           {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
           {copied ? 'Copied!' : 'Copy All'}
@@ -109,7 +109,7 @@ export default function XactResultsPanel({ result }: ResultsPanelProps) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 size={15} className="text-green-500" />
-            <h3 className="font-semibold text-slate-300 text-sm">
+            <h3 className="font-semibold text-zinc-300 text-sm">
               Matched Line Items ({result.matchResult.matched.length})
             </h3>
           </div>
@@ -125,7 +125,7 @@ export default function XactResultsPanel({ result }: ResultsPanelProps) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle size={15} className="text-yellow-500" />
-            <h3 className="font-semibold text-slate-300 text-sm">
+            <h3 className="font-semibold text-zinc-300 text-sm">
               Unmatched — Review Manually ({result.matchResult.unmatched.length})
             </h3>
           </div>
@@ -146,20 +146,20 @@ export default function XactResultsPanel({ result }: ResultsPanelProps) {
       {result.summary && (
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <FileText size={15} className="text-blue-400" />
-            <h3 className="font-semibold text-slate-300 text-sm">Estimate Summary</h3>
+            <FileText size={15} className="text-amber-400" />
+            <h3 className="font-semibold text-zinc-300 text-sm">Estimate Summary</h3>
           </div>
-          <div className="bg-blue-600/10 border border-blue-600/20 rounded-lg p-3">
-            <p className="text-sm text-slate-300 leading-relaxed">{result.summary}</p>
+          <div className="bg-amber-700/10 border border-amber-700/20 rounded-lg p-3">
+            <p className="text-sm text-zinc-300 leading-relaxed">{result.summary}</p>
           </div>
         </div>
       )}
 
       {result.observations && (
         <div>
-          <h3 className="font-semibold text-slate-300 text-sm mb-2">Visual Observations</h3>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-            <p className="text-sm text-slate-400 leading-relaxed">{result.observations}</p>
+          <h3 className="font-semibold text-zinc-300 text-sm mb-2">Visual Observations</h3>
+          <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
+            <p className="text-sm text-zinc-400 leading-relaxed">{result.observations}</p>
           </div>
         </div>
       )}
@@ -167,21 +167,21 @@ export default function XactResultsPanel({ result }: ResultsPanelProps) {
       {(result.materials?.length > 0 || result.damageTypes?.length > 0) && (
         <div className="grid grid-cols-2 gap-3">
           {result.materials?.length > 0 && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Materials</p>
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Materials</p>
               <div className="flex flex-wrap gap-1">
                 {result.materials.map((m, i) => (
-                  <span key={i} className="text-xs bg-slate-700 border border-slate-600 text-slate-300 px-2 py-0.5 rounded-full">{m}</span>
+                  <span key={i} className="text-xs bg-zinc-700 border border-zinc-600 text-zinc-300 px-2 py-0.5 rounded-full">{m}</span>
                 ))}
               </div>
             </div>
           )}
           {result.damageTypes?.length > 0 && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Damage Types</p>
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Damage Types</p>
               <div className="flex flex-wrap gap-1">
                 {result.damageTypes.map((d, i) => (
-                  <span key={i} className="text-xs bg-slate-700 border border-slate-600 text-slate-300 px-2 py-0.5 rounded-full">{d}</span>
+                  <span key={i} className="text-xs bg-zinc-700 border border-zinc-600 text-zinc-300 px-2 py-0.5 rounded-full">{d}</span>
                 ))}
               </div>
             </div>

@@ -29,6 +29,15 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
   const streamRef = useRef<MediaStream | null>(null)
   const fallbackInputRef = useRef<HTMLInputElement>(null)
 
+  const isMobile = useCallback(() => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+    return (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      (navigator.maxTouchPoints > 0 && /Macintosh|Linux|Windows/i.test(navigator.userAgent)) ||
+      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    )
+  }, [])
+
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
@@ -40,36 +49,42 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
       return
     }
     try {
-      // Without explicit width/height, the browser defaults to a low
-      // "video call" resolution (often well under 1MP) instead of the
-      // camera's real photo resolution -- produced visibly fuzzy captures
-      // on a real device. `ideal` asks for the highest the camera offers up
-      // to this without forcing a hard failure if it can't hit it exactly.
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 4032 },
-          height: { ideal: 3024 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
         audio: false,
       })
       streamRef.current = stream
       setOpen(true)
     } catch (err) {
-      console.error('[CameraCapture] getUserMedia failed, falling back to native picker:', err)
+      console.warn('[CameraCapture] getUserMedia failed or unavailable, falling back to native picker:', err)
       fallbackInputRef.current?.click()
     }
   }
 
-  // requestAnimationFrame right after setOpen(true) was a guess that the
-  // <video> element would already be mounted by the time it fired -- it
-  // isn't always, especially on a slower phone, which left videoRef.current
-  // null and the stream never attached: a black preview with no error.
-  // A useEffect keyed on `open` runs after React actually commits the
-  // mounted <video>, so the ref is reliably there.
+  const handleCameraClick = (e: React.MouseEvent) => {
+    // On phones & tablets, opening the phone's native camera app is the gold standard:
+    // It provides native camera resolution, autofocus, flash, macro clarity, and zero permission hurdles.
+    // Triggering the file input SYNCHRONOUSLY within this user gesture ensures iOS Safari & Android
+    // Chrome never block the action.
+    if (isMobile()) {
+      if (fallbackInputRef.current) {
+        fallbackInputRef.current.click()
+      }
+      return
+    }
+
+    // On desktop / laptop devices, launch the in-page webcam viewfinder
+    openCamera()
+  }
+
   useEffect(() => {
     if (open && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current
+      videoRef.current.play().catch((err) => console.warn('[CameraCapture] video play error:', err))
     }
   }, [open])
 
@@ -125,7 +140,13 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
 
   return (
     <>
-      <button type="button" onClick={openCamera} className={className}>
+      <button
+        type="button"
+        onClick={handleCameraClick}
+        className={className}
+        title="Take photo with camera"
+        aria-label={label || "Take photo with camera"}
+      >
         <Camera className="w-4 h-4" /> {label}
       </button>
 
@@ -134,7 +155,17 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
         type="file"
         accept="image/*"
         capture="environment"
-        className="hidden"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          opacity: 0,
+          overflow: 'hidden',
+          clip: 'rect(0,0,0,0)'
+        }}
         onChange={(e) => {
           const file = e.target.files?.[0]
           if (file) onCapture(file)
@@ -150,10 +181,10 @@ export default function CameraCapture({ onCapture, className, label = 'Take Phot
               column, overflowing and pushing the capture button off-screen. */}
           <video ref={videoRef} autoPlay playsInline muted className="flex-1 min-h-0 w-full object-cover" />
           <div className="flex items-center justify-between p-4 bg-black/80">
-            <button onClick={close} aria-label="Cancel" className="p-3 rounded-full bg-slate-800 text-white">
+            <button onClick={close} aria-label="Cancel" className="p-3 rounded-full bg-zinc-800 text-white">
               <X className="w-6 h-6" />
             </button>
-            <button onClick={capture} aria-label="Capture photo" className="w-16 h-16 rounded-full bg-white border-4 border-slate-400" />
+            <button onClick={capture} aria-label="Capture photo" className="w-16 h-16 rounded-full bg-white border-4 border-zinc-400" />
             <div className="w-12" />
           </div>
         </div>

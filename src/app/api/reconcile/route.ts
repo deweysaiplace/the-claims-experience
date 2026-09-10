@@ -28,8 +28,8 @@ function stripHtmlWrapper(text: string): string {
 }
 
 async function filesToBase64(files: File[]) {
-  const images = files.filter((f) => f.type.startsWith('image/'))
-  const pdfs = files.filter((f) => f.type === 'application/pdf')
+  const images = files.filter((f) => f.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|heic)$/i.test(f.name))
+  const pdfs = files.filter((f) => (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) && !images.includes(f))
   const [base64Images, base64Pdfs] = await Promise.all([
     Promise.all(images.map(async (f) => Buffer.from(await f.arrayBuffer()).toString('base64'))),
     Promise.all(pdfs.map(async (f) => Buffer.from(await f.arrayBuffer()).toString('base64'))),

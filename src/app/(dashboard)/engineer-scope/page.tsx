@@ -44,27 +44,27 @@ function MultiPageDropzone({
 
   return (
     <div className="flex-1 min-w-0">
-      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</div>
+      <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">{label}</div>
 
       {files.length > 0 && (
         <div className="grid grid-cols-4 gap-1.5 mb-2">
           {files.map((file, i) => {
             const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf')
             return (
-              <div key={i} className="relative rounded-lg overflow-hidden border border-slate-700 group aspect-[4/3] bg-slate-900">
+              <div key={i} className="relative rounded-lg overflow-hidden border border-zinc-700 group aspect-[4/3] bg-zinc-900">
                 {isPdf ? (
                   <div className="flex flex-col items-center justify-center h-full">
                     <FileText className="w-6 h-6 text-red-400" />
-                    <span className="text-[9px] text-slate-400 mt-1 px-1 truncate max-w-full">{file.name}</span>
+                    <span className="text-[9px] text-zinc-400 mt-1 px-1 truncate max-w-full">{file.name}</span>
                   </div>
                 ) : (
                   <img src={previews[i]} alt={`Page ${i + 1}`} className="w-full h-full object-cover" />
                 )}
                 <button onClick={() => onRemove(i)}
-                  className="absolute top-0.5 right-0.5 p-0.5 bg-black/70 rounded text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                  className="absolute top-0.5 right-0.5 p-0.5 bg-black/70 rounded text-zinc-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                   <X className="w-3 h-3" />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-center text-[9px] text-slate-300 py-0.5">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-center text-[9px] text-zinc-300 py-0.5">
                   pg {i + 1}
                 </div>
               </div>
@@ -76,23 +76,23 @@ function MultiPageDropzone({
       <div className="flex gap-1.5">
         <div {...getRootProps()}
           className={`flex-1 border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all flex flex-col items-center justify-center
-            ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-slate-700 hover:border-slate-500 bg-slate-900'}
+            ${isDragActive ? 'border-amber-600 bg-amber-600/10' : 'border-zinc-700 hover:border-zinc-500 bg-zinc-900'}
             ${files.length > 0 ? 'py-2' : 'py-6'}`}>
           <input {...getInputProps()} />
           {files.length === 0 ? (
             <>
-              <Upload className="w-6 h-6 text-slate-600 mb-1" />
-              <p className="text-slate-400 text-xs">Drop engineer report photos/PDF</p>
-              <p className="text-slate-600 text-[10px] mt-0.5">Multi-page supported</p>
+              <Upload className="w-6 h-6 text-zinc-600 mb-1" />
+              <p className="text-zinc-400 text-xs">Drop engineer report photos/PDF</p>
+              <p className="text-zinc-600 text-[10px] mt-0.5">Multi-page supported</p>
             </>
           ) : (
-            <span className="text-slate-400 text-xs flex items-center gap-1"><Plus className="w-3 h-3" /> Add pages</span>
+            <span className="text-zinc-400 text-xs flex items-center gap-1"><Plus className="w-3 h-3" /> Add pages</span>
           )}
         </div>
         <CameraCapture
           onCapture={(file) => onAdd([file])}
           label=""
-          className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition-colors flex items-center cursor-pointer select-none"
+          className="px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-400 hover:text-white transition-colors flex items-center cursor-pointer select-none"
         />
       </div>
     </div>
@@ -117,6 +117,8 @@ export default function EngineerScopePage() {
   // save failure there was invisible. Same bug already found and fixed on
   // field-scope, field-notes and reconciler.
   const [resultError, setResultError] = useState('')
+  const [emailSending, setEmailSending] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   // Takes content explicitly so the auto-save right after analysis can save
   // what the API just returned without waiting on a state update to land.
@@ -246,42 +248,80 @@ export default function EngineerScopePage() {
         }
       })
     }
-
     return { summary, policy, scope, note, hasTags: !!summaryRaw }
   }
 
   const parsed = parseResult(result)
 
+  const handleEmail = async () => {
+    if (emailSending || !result) return
+    setEmailSending(true)
+    setResultError('')
+    try {
+      const res = await fetch('/api/send-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: `Structural Engineering Scope Audit${claimRef ? ` — Claim ${claimRef}` : ''}${address ? ` — ${address}` : ''}`,
+          body: result,
+          claimRef,
+        }),
+      })
+      await readJsonOrThrow(res)
+      setEmailSent(true)
+      setTimeout(() => setEmailSent(false), 3000)
+    } catch (err: unknown) {
+      setResultError(err instanceof Error ? err.message : 'Email failed to send')
+    } finally {
+      setEmailSending(false)
+    }
+  }
+
   const handleSavePortal = () => saveReport(result)
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Shield className="w-6 h-6 text-blue-400" />
-          Engineer Scope Generator
-        </h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Upload expert engineer report — Automatically extracts structural findings, checks State Farm policy limits, and outputs Xactimate items.
-        </p>
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      {/* Header Banner */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-950/70 via-slate-900 to-slate-950 border border-purple-500/30 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-600/40 ring-1 ring-purple-400/40">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Structural Engineer Scope Generator
+                </h1>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                  STRUCTURAL AI
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                Forensic report audit, State Farm policy alignment, causation analysis, and Xactimate structural items
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-zinc-900 border-zinc-800">
         <CardContent className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1.5">
                 Claim Reference
               </label>
               <input type="text" value={claimRef} onChange={(e) => setClaimRef(e.target.value)} placeholder="e.g. 7842"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500" />
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-600" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1.5">
                 Property Address
               </label>
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 412 Maple St"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500" />
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-600" />
             </div>
           </div>
 
@@ -297,7 +337,7 @@ export default function EngineerScopePage() {
 
           <button onClick={handleAnalyze}
             disabled={loading || files.length === 0}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
+            className="w-full py-3 rounded-xl bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing Engineering Report… ({elapsedSeconds}s)</>
             ) : (
@@ -305,7 +345,7 @@ export default function EngineerScopePage() {
             )}
           </button>
           {loading && (
-            <p className="text-center text-xs text-slate-500">
+            <p className="text-center text-xs text-zinc-500">
               Can take up to a minute or two — this is still working, not stuck.
             </p>
           )}
@@ -317,44 +357,59 @@ export default function EngineerScopePage() {
           {/* Summary Cards */}
           {parsed.hasTags && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="bg-slate-900 border-slate-800 p-4">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Engineering Firm</div>
+              <Card className="bg-zinc-900 border-zinc-800 p-4">
+                <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Engineering Firm</div>
                 <div className="text-lg font-bold text-white mt-1">{parsed.summary.firm}</div>
               </Card>
-              <Card className="bg-slate-900 border-slate-800 p-4">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Report Date</div>
+              <Card className="bg-zinc-900 border-zinc-800 p-4">
+                <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Report Date</div>
                 <div className="text-lg font-bold text-white mt-1">{parsed.summary.date}</div>
               </Card>
-              <Card className="bg-slate-900 border-slate-800 p-4">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Primary Scope Findings</div>
-                <div className="text-xs text-slate-300 mt-1 truncate">{parsed.summary.findings}</div>
+              <Card className="bg-zinc-900 border-zinc-800 p-4">
+                <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Primary Scope Findings</div>
+                <div className="text-xs text-zinc-300 mt-1 truncate">{parsed.summary.findings}</div>
               </Card>
             </div>
           )}
 
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="pb-3 border-b border-slate-800">
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader className="pb-3 border-b border-zinc-800">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 max-w-max">
+                <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 max-w-max">
                   <button onClick={() => setActiveTab('policy')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'policy' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'policy' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
                     🛡️ Policy Alignment
                   </button>
                   {parsed.hasTags && (
                     <>
                       <button onClick={() => setActiveTab('scope')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'scope' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'scope' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
                         📊 Xactimate Scope
                       </button>
                       <button onClick={() => setActiveTab('note')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'note' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'note' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
                         📝 File Note
                       </button>
                     </>
                   )}
                 </div>
 
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2 justify-end flex-wrap">
+                  <button
+                    onClick={handleEmail}
+                    disabled={emailSending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+                    title="Send full report to work email"
+                  >
+                    {emailSending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : emailSent ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Mail className="w-3.5 h-3.5 text-purple-400" />
+                    )}
+                    {emailSent ? 'Sent to Work!' : emailSending ? 'Sending…' : 'Email to Work'}
+                  </button>
                   <button onClick={handleSavePortal} disabled={saving}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-medium transition-colors">
                     {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
@@ -369,7 +424,7 @@ export default function EngineerScopePage() {
                       setCopied(true)
                       setTimeout(() => setCopied(false), 2000)
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                     {copied ? 'Copied Tab!' : `Copy ${activeTab === 'policy' ? 'Alignment' : activeTab === 'scope' ? 'Scope' : 'Note'}`}
@@ -379,11 +434,11 @@ export default function EngineerScopePage() {
               {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-blue-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
+              <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-amber-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-4">
                 {activeTab === 'policy' && <ReactMarkdown>{parsed.policy}</ReactMarkdown>}
                 {activeTab === 'scope' && <ReactMarkdown>{parsed.scope}</ReactMarkdown>}
                 {activeTab === 'note' && (
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-100 whitespace-pre-wrap select-all">
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 font-mono text-xs text-zinc-100 whitespace-pre-wrap select-all">
                     {parsed.note}
                   </div>
                 )}

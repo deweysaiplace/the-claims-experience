@@ -44,7 +44,7 @@ function MultiPageDropzone({
 
   return (
     <div className="flex-1 min-w-0">
-      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</div>
+      <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">{label}</div>
 
       {/* Thumbnails */}
       {files.length > 0 && (
@@ -52,20 +52,20 @@ function MultiPageDropzone({
           {files.map((file, i) => {
             const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf')
             return (
-              <div key={i} className="relative rounded-lg overflow-hidden border border-slate-700 group aspect-[4/3] bg-slate-900">
+              <div key={i} className="relative rounded-lg overflow-hidden border border-zinc-700 group aspect-[4/3] bg-zinc-900">
                 {isPdf ? (
                   <div className="flex flex-col items-center justify-center h-full">
                     <FileText className="w-6 h-6 text-red-400" />
-                    <span className="text-[9px] text-slate-400 mt-1 px-1 truncate max-w-full">{file.name}</span>
+                    <span className="text-[9px] text-zinc-400 mt-1 px-1 truncate max-w-full">{file.name}</span>
                   </div>
                 ) : (
                   <img src={previews[i]} alt={`Page ${i + 1}`} className="w-full h-full object-cover" />
                 )}
                 <button onClick={() => onRemove(i)}
-                  className="absolute top-0.5 right-0.5 p-0.5 bg-black/70 rounded text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                  className="absolute top-0.5 right-0.5 p-0.5 bg-black/70 rounded text-zinc-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                   <X className="w-3 h-3" />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-center text-[9px] text-slate-300 py-0.5">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-center text-[9px] text-zinc-300 py-0.5">
                   pg {i + 1}
                 </div>
               </div>
@@ -78,23 +78,23 @@ function MultiPageDropzone({
       <div className="flex gap-1.5">
         <div {...getRootProps()}
           className={`flex-1 border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all flex flex-col items-center justify-center
-            ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-slate-700 hover:border-slate-500 bg-slate-900'}
+            ${isDragActive ? 'border-amber-600 bg-amber-600/10' : 'border-zinc-700 hover:border-zinc-500 bg-zinc-900'}
             ${files.length > 0 ? 'py-2' : 'py-6'}`}>
           <input {...getInputProps()} />
           {files.length === 0 ? (
             <>
-              <Upload className="w-6 h-6 text-slate-600 mb-1" />
-              <p className="text-slate-400 text-xs">Drop photos/PDF or tap</p>
-              <p className="text-slate-600 text-[10px] mt-0.5">Multi-page supported</p>
+              <Upload className="w-6 h-6 text-zinc-600 mb-1" />
+              <p className="text-zinc-400 text-xs">Drop photos/PDF or tap</p>
+              <p className="text-zinc-600 text-[10px] mt-0.5">Multi-page supported</p>
             </>
           ) : (
-            <span className="text-slate-400 text-xs flex items-center gap-1"><Plus className="w-3 h-3" /> Add pages</span>
+            <span className="text-zinc-400 text-xs flex items-center gap-1"><Plus className="w-3 h-3" /> Add pages</span>
           )}
         </div>
         <CameraCapture
           onCapture={(file) => onAdd([file])}
           label=""
-          className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition-colors flex items-center cursor-pointer select-none"
+          className="px-3.5 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 border border-zinc-700 text-amber-400 hover:text-amber-300 transition-colors flex items-center justify-center cursor-pointer select-none min-h-[48px] min-w-[48px] touch-manipulation"
         />
       </div>
     </div>
@@ -290,28 +290,28 @@ export default function ReconcilerPage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <GitCompare className="w-6 h-6 text-blue-400" />
+            <GitCompare className="w-6 h-6 text-amber-400" />
             Estimate Reconciler
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-zinc-400 text-sm mt-1">
             Upload photos of both estimates (multi-page) — AI generates a variance matrix + dual output drafts
           </p>
         </div>
         <button onClick={() => setPhoneModal(true)}
-          className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-colors flex-shrink-0">
-          <Smartphone className="w-4 h-4 text-blue-400" /> Load from phone
+          className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white text-sm font-medium transition-colors flex-shrink-0">
+          <Smartphone className="w-4 h-4 text-amber-400" /> Load from phone
         </button>
       </div>
 
       {/* Phone handoff modal */}
       {phoneModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-white font-bold flex items-center gap-2"><Smartphone className="w-4 h-4 text-blue-400" /> Load from phone</h3>
-              <button onClick={() => { setPhoneModal(false); setPhoneCode(''); setPhoneError('') }} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
+              <h3 className="text-white font-bold flex items-center gap-2"><Smartphone className="w-4 h-4 text-amber-400" /> Load from phone</h3>
+              <button onClick={() => { setPhoneModal(false); setPhoneCode(''); setPhoneError('') }} className="text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
             </div>
-            <p className="text-slate-400 text-sm">Enter the 6-character code shown on your phone after uploading.</p>
+            <p className="text-zinc-400 text-sm">Enter the 6-character code shown on your phone after uploading.</p>
             <input
               type="text"
               value={phoneCode}
@@ -319,34 +319,34 @@ export default function ReconcilerPage() {
               onKeyDown={e => e.key === 'Enter' && loadFromPhone()}
               placeholder="AB3X7K"
               maxLength={6}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-center text-2xl font-mono tracking-widest placeholder-slate-600 outline-none focus:border-blue-500"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-center text-2xl font-mono tracking-widest placeholder-zinc-600 outline-none focus:border-amber-600"
             />
             {phoneError && <p className="text-red-400 text-sm">{phoneError}</p>}
             <button onClick={loadFromPhone} disabled={phoneLoading || phoneCode.length !== 6}
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold flex items-center justify-center gap-2 transition-colors">
+              className="w-full py-3 rounded-xl bg-amber-700 hover:bg-amber-600 disabled:opacity-40 text-white font-semibold flex items-center justify-center gap-2 transition-colors">
               {phoneLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading…</> : 'Load Files'}
             </button>
-            <p className="text-xs text-slate-600 text-center">First half of files → Estimate A · Second half → Estimate B</p>
+            <p className="text-xs text-zinc-600 text-center">First half of files → Estimate A · Second half → Estimate B</p>
           </div>
         </div>
       )}
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-zinc-900 border-zinc-800">
         <CardContent className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1.5">
                 Claim Reference (last 4)
               </label>
               <input type="text" value={claimRef} onChange={(e) => setClaimRef(e.target.value)} placeholder="e.g. 7842"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500" />
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-600" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1.5">
                 Property Address
               </label>
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 412 Maple St"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500" />
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-600" />
             </div>
           </div>
 
@@ -370,7 +370,7 @@ export default function ReconcilerPage() {
 
           <button onClick={handleAnalyze}
             disabled={loading || pagesA.length === 0 || pagesB.length === 0}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
+            className="w-full py-3 rounded-xl bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing {pagesA.length + pagesB.length} pages… ({elapsedSeconds}s)</>
             ) : (
@@ -378,7 +378,7 @@ export default function ReconcilerPage() {
             )}
           </button>
           {loading && (
-            <p className="text-center text-xs text-slate-500">
+            <p className="text-center text-xs text-zinc-500">
               Multi-page reconciliation can take up to a minute or two — this is still working, not stuck.
             </p>
           )}
@@ -386,7 +386,7 @@ export default function ReconcilerPage() {
       </Card>
 
       {result && (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-white text-base">Analysis Results</CardTitle>
@@ -397,12 +397,12 @@ export default function ReconcilerPage() {
                   {saved ? 'Saved!' : 'Save'}
                 </button>
                 <button onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors">
                   {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
                 <button onClick={handleEmail} disabled={emailSending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-medium transition-colors">
                   {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : emailSent ? <Check className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
                   {emailSent ? 'Sent!' : 'Email'}
                 </button>
@@ -411,7 +411,7 @@ export default function ReconcilerPage() {
             {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-blue-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
+            <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-amber-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-4">
               <ReactMarkdown>{result}</ReactMarkdown>
             </div>
           </CardContent>

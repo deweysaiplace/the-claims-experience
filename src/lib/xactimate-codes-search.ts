@@ -10,8 +10,26 @@ export interface XactimateCodeEntry {
 
 const ALL_CODES: XactimateCodeEntry[] = (codesData as { codes: XactimateCodeEntry[] }).codes
 
+// Same word-form fix applied to policy-docs-search.ts: without this, a query
+// like "framing" doesn't match a description tokenized to "frame", and
+// "shingles" doesn't match "shingle" -- an exact-string keyword match silently
+// misses otherwise-correct codes purely on verb tense/pluralization. Must stay
+// identical to the copy in scripts/build-xactimate-codes.js, which stems
+// `keywords` at build time -- query words are stemmed the same way here so
+// the two line up.
+function stem(word: string): string {
+  if (word.length > 5 && word.endsWith('ies')) return word.slice(0, -3) + 'y'
+  if (word.length > 5 && word.endsWith('ing')) return word.slice(0, -3)
+  if (word.length > 4 && word.endsWith('ed')) return word.slice(0, -2)
+  if (word.length > 4 && word.endsWith('es')) return word.slice(0, -2)
+  if (word.length > 3 && word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1)
+  return word
+}
+
 function tokenize(text: string): Set<string> {
-  return new Set((text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length > 2))
+  return new Set(
+    (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length > 2).map(stem)
+  )
 }
 
 /**

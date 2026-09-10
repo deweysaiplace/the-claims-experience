@@ -1,11 +1,11 @@
 {
-  "name": "The Claims Experience",
-  "short_name": "Claims",
-  "description": "Insurance Adjuster Toolkit — Estimate Reconciliation, XactScope, Field Narratives",
+  "name": "Claims Experience",
+  "short_name": "Claims Experience",
+  "description": "Insurance Adjuster Toolkit — Estimate Reconciliation, Scoping, Field Notes",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#2563eb",
+  "background_color": "#09090b",
+  "theme_color": "#b45309",
   "orientation": "any",
   "icons": [
     {

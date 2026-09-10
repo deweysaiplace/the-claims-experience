@@ -305,46 +305,46 @@ export default function FieldNotesPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Mic className="w-6 h-6 text-blue-400" />
+          <Mic className="w-6 h-6 text-amber-400" />
           Field Narratives
         </h1>
-        <p className="text-slate-400 text-sm mt-1">
+        <p className="text-zinc-400 text-sm mt-1">
           Create location tags, speak your raw inspection notes, and let AI format them into a room-by-room claim narrative
         </p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-5 space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Claim Ref (last 4)</label>
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1.5">Claim Ref (last 4)</label>
                 <input
                   type="text"
                   value={claimRef}
                   onChange={(e) => setClaimRef(e.target.value)}
                   placeholder="e.g. 7842"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-600"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Property Address</label>
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1.5">Property Address</label>
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="e.g. 412 Maple St"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-600"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Locations Section */}
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-5 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Location Tags</label>
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2">Location Tags</label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {locations.map(loc => (
                     <button
@@ -355,8 +355,8 @@ export default function FieldNotesPage() {
                       }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
                         activeLocationId === loc.id 
-                          ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' 
-                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white'
+                          ? 'bg-amber-700 border-amber-600 text-white shadow-lg shadow-amber-600/20' 
+                          : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white'
                       }`}
                     >
                       <MapPin className="w-3.5 h-3.5" />
@@ -364,7 +364,7 @@ export default function FieldNotesPage() {
                       {locations.length > 1 && (
                         <div 
                           onClick={(e) => { e.stopPropagation(); removeLocation(loc.id) }}
-                          className="ml-1 p-0.5 rounded-full hover:bg-black/20 text-slate-400 hover:text-white transition-colors"
+                          className="ml-1 p-0.5 rounded-full hover:bg-black/20 text-zinc-400 hover:text-white transition-colors"
                         >
                           <X className="w-3 h-3" />
                         </div>
@@ -375,22 +375,22 @@ export default function FieldNotesPage() {
                 
                 {/* Add new location */}
                 <div className="flex gap-2 items-center flex-wrap">
-                  <div className="flex bg-slate-800 border border-slate-700 rounded-lg overflow-hidden flex-1 min-w-[150px]">
+                  <div className="flex bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden flex-1 min-w-[150px]">
                     <input
                       type="text"
                       value={newLocationName}
                       onChange={(e) => setNewLocationName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addLocation(newLocationName)}
                       placeholder="Add custom location..."
-                      className="w-full bg-transparent px-3 py-1.5 text-sm text-white placeholder-slate-500 outline-none"
+                      className="w-full bg-transparent px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
                     />
-                    <button onClick={() => addLocation(newLocationName)} className="px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors">
+                    <button onClick={() => addLocation(newLocationName)} className="px-3 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="text-xs text-slate-500 flex gap-2 flex-wrap">
+                  <div className="text-xs text-zinc-500 flex gap-2 flex-wrap">
                     {PRESET_LOCATIONS.filter(p => !locations.find(l => l.name === p)).map(preset => (
-                      <button key={preset} onClick={() => addLocation(preset)} className="hover:text-blue-400 transition-colors">
+                      <button key={preset} onClick={() => addLocation(preset)} className="hover:text-amber-400 transition-colors">
                         +{preset}
                       </button>
                     ))}
@@ -412,7 +412,7 @@ export default function FieldNotesPage() {
               className={`w-full py-5 rounded-xl font-semibold flex items-center justify-center gap-3 text-lg transition-all
                 ${isRecording
                   ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 shadow-lg'}`}
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 shadow-lg'}`}
             >
               {isRecording ? (
                 <><MicOff className="w-6 h-6" /> Stop Recording ({activeLocation.name})</>
@@ -425,7 +425,7 @@ export default function FieldNotesPage() {
           {activeLocation && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   {isRecording ? `Live Transcript: ${activeLocation.name}` : `Transcript: ${activeLocation.name}`}
                 </label>
                 {(activeLocation.transcript || sessionTranscript) && (
@@ -436,7 +436,7 @@ export default function FieldNotesPage() {
                       setSessionTranscript('')
                       sessionTranscriptRef.current = ''
                     }} 
-                    className="text-slate-600 hover:text-red-400 text-xs flex items-center gap-1"
+                    className="text-zinc-600 hover:text-red-400 text-xs flex items-center gap-1"
                   >
                     <Trash2 className="w-3 h-3" /> Clear
                   </button>
@@ -451,7 +451,7 @@ export default function FieldNotesPage() {
                 placeholder={`Recording will appear here… or type your raw notes for ${activeLocation.name} manually.`}
                 rows={6}
                 disabled={isRecording}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 resize-none font-mono disabled:opacity-70"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-600 resize-none font-mono disabled:opacity-70"
               />
             </div>
           )}
@@ -461,7 +461,7 @@ export default function FieldNotesPage() {
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors mt-6"
+            className="w-full py-3 rounded-xl bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors mt-6"
           >
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Generating File Note… ({elapsedSeconds}s)</>
@@ -470,7 +470,7 @@ export default function FieldNotesPage() {
             )}
           </button>
           {loading && (
-            <p className="text-center text-xs text-slate-500 mt-2">
+            <p className="text-center text-xs text-zinc-500 mt-2">
               Can take up to a minute or two — this is still working, not stuck.
             </p>
           )}
@@ -478,7 +478,7 @@ export default function FieldNotesPage() {
 
         <div>
           {note ? (
-            <Card className="bg-slate-900 border-slate-800 h-full">
+            <Card className="bg-zinc-900 border-zinc-800 h-full">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-white text-base">Field Inspection Narrative</CardTitle>
@@ -493,7 +493,7 @@ export default function FieldNotesPage() {
                     </button>
                     <button
                       onClick={handleCopy}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                       {copied ? 'Copied!' : 'Copy'}
@@ -501,7 +501,7 @@ export default function FieldNotesPage() {
                     <button
                       onClick={handleEmail}
                       disabled={emailSending}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-medium"
                     >
                       {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : emailSent ? <Check className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
                       {emailSent ? 'Sent!' : 'Email'}
@@ -511,13 +511,13 @@ export default function FieldNotesPage() {
                 {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-blue-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
+                <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-amber-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-4">
                   <ReactMarkdown>{note}</ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-slate-600 bg-slate-900/50 rounded-2xl border border-slate-800 border-dashed">
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-zinc-600 bg-zinc-900/50 rounded-2xl border border-zinc-800 border-dashed">
               <FileText className="w-16 h-16 mb-4 opacity-20" />
               <p className="text-sm">Formatted file note will appear here</p>
             </div>

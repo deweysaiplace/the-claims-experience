@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { BookOpen, Send, Loader2, Trash2, ImagePlus, X, Mic, MicOff, MessageSquare, Volume2, VolumeX } from 'lucide-react'
+import { Sparkles, Send, Loader2, Trash2, ImagePlus, X, Mic, MicOff } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import CameraCapture from '@/components/CameraCapture'
@@ -13,26 +13,14 @@ interface Message {
   content: string
 }
 
-type Mode = 'lookup' | 'consult'
-
-const QUICK_QUESTIONS = [
-  'What is the standard code for detaching and resetting an aluminum awning?',
-  'When does O&P apply on a State Farm claim?',
-  'What is the difference between RFG LAY and RFG TRN?',
-  'How do I code soft metal dents on box vents?',
-  'What unit does carpet use in Xactimate?',
-  'When is matching required for siding replacement?',
+const STARTERS = [
+  "I've got some inspection notes I want to think through before I write the scope.",
+  'The insured sent an email pushing back on my estimate — help me think through a response.',
+  "I'm not sure which exclusion actually applies here — let me describe the situation.",
+  'Snip a photo of an email, text, or document and ask me about it.',
 ]
 
-const CONSULT_STARTERS = [
-  "I'm at a property with wind damage to the roof and siding — walk me through what I should be scoping.",
-  'Insured says the water damage is a few days old, but what I\'m seeing suggests longer-term — how should I approach this?',
-  'Contractor wants a full roof replacement, but the damage looks localized — how do I evaluate whether matching applies?',
-  "The insured is pushing back on my scope — help me think through what's actually defensible here.",
-]
-
-export default function CodeReferencePage() {
-  const [mode, setMode] = useState<Mode>('lookup')
+export default function ClaimAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -43,56 +31,12 @@ export default function CodeReferencePage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
 
-  // Same fixed dictation pattern already proven on Policy Chat/Field Notes:
+  // Same fixed dictation pattern already proven on Policy Chat/Code Reference:
   // rebuild from index 0 each time and replace (not append) a final chunk
   // that's just a fuller version of the last one -- see those pages for why.
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<any>(null)
   const micBaselineRef = useRef('')
-
-  // Voice mode: speak each answer aloud, then re-arm the mic when it finishes,
-  // for hands-free back-and-forth. Refs mirror state that the mount-only
-  // effect below and the speech-synthesis callbacks need to read fresh --
-  // same pattern as micBaselineRef, since those closures don't re-run on
-  // every render.
-  const [voiceMode, setVoiceMode] = useState(false)
-  const [speaking, setSpeaking] = useState(false)
-  const voiceModeRef = useRef(false)
-  const inputRef = useRef('')
-  const sendMessageRef = useRef<(q: string) => void>(() => {})
-  useEffect(() => { voiceModeRef.current = voiceMode }, [voiceMode])
-  useEffect(() => { inputRef.current = input }, [input])
-
-  const speak = (text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const plain = text
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`([^`]+)`/g, '$1')
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
-      .replace(/\*([^*]+)\*/g, '$1')
-      .replace(/^#{1,6}\s*/gm, '')
-      .replace(/^[-*]\s+/gm, '')
-      .replace(/^\d+\.\s+/gm, '')
-      .replace(/\n{2,}/g, '. ')
-      .replace(/\n/g, ' ')
-      .trim()
-    if (!plain) return
-    const utter = new SpeechSynthesisUtterance(plain)
-    utter.onstart = () => setSpeaking(true)
-    utter.onend = () => {
-      setSpeaking(false)
-      // Loop back into listening automatically -- this is what makes it a
-      // conversation instead of read-the-answer-then-tap-mic-again.
-      if (voiceModeRef.current && recognitionRef.current) {
-        micBaselineRef.current = ''
-        recognitionRef.current.start()
-        setIsListening(true)
-      }
-    }
-    utter.onerror = () => setSpeaking(false)
-    window.speechSynthesis.speak(utter)
-  }
 
   useEffect(() => {
     const SpeechAPI = typeof window !== 'undefined'
@@ -123,16 +67,7 @@ export default function CodeReferencePage() {
         setInput(base ? `${base} ${sessionFinal}`.trim() : sessionFinal)
       }
     }
-    rec.onend = () => {
-      setIsListening(false)
-      // Voice mode: silence (the browser's own end-of-speech detection) is
-      // the "done talking" signal -- send whatever got transcribed instead
-      // of waiting for a manual tap on Send.
-      if (voiceModeRef.current) {
-        const q = inputRef.current.trim()
-        if (q) sendMessageRef.current(q)
-      }
-    }
+    rec.onend = () => setIsListening(false)
     rec.onerror = () => setIsListening(false)
     recognitionRef.current = rec
   }, [])
@@ -148,16 +83,6 @@ export default function CodeReferencePage() {
     }
   }
 
-  const switchMode = (next: Mode) => {
-    if (next === mode) return
-    // Different system prompts per mode -- keeping cross-mode history around
-    // would send the consult framing a lookup-mode answer, or vice versa.
-    // Starting fresh avoids a confused mid-conversation context switch.
-    setMode(next)
-    setMessages([])
-    setError('')
-  }
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
@@ -171,10 +96,10 @@ export default function CodeReferencePage() {
   const sendMessage = async (question: string) => {
     const q = question.trim()
     if ((!q && photos.length === 0) || loading) return
-    // A photo with no typed question is a valid request on its own -- "point
-    // the camera at damage and ask what it is" -- so fall back to a default
+    // A photo with no typed question is a valid request on its own -- "here's
+    // a screenshot, what does this mean" -- so fall back to a default
     // question instead of blocking send.
-    const effectiveQuestion = q || 'What is the standard Xactimate procedure and code for the damage shown in this photo?'
+    const effectiveQuestion = q || 'What does this image show, and is there anything I should be thinking about here?'
     const attachedPhotos = photos
     setInput('')
     setPhotos([])
@@ -191,24 +116,16 @@ export default function CodeReferencePage() {
       const form = new FormData()
       form.append('question', effectiveQuestion)
       form.append('history', JSON.stringify(history))
-      form.append('mode', mode)
       if (attachedPhotos.length) {
-        // Lookup mode photos are photographed price-sheet/document pages —
-        // grayscale is a free size win there. Consult mode photos are real
-        // property damage shots, where staining/discoloration/matching are
-        // often the whole point, so color has to survive compression.
-        const prepared = await compressImages(attachedPhotos, undefined, mode !== 'consult')
-        console.log(`[ClaimConsult] sending ${prepared.length}/${attachedPhotos.length} photo(s), ${prepared.reduce((sum, p) => sum + p.size, 0)}b total`)
+        // These are as likely to be a screenshot of an email/text as a photo
+        // of physical damage, so keep color rather than assume grayscale is safe.
+        const prepared = await compressImages(attachedPhotos, undefined, false)
         prepared.forEach((p) => form.append('photos', p))
       }
 
-      const res = await fetch('/api/code-reference', { method: 'POST', body: form })
+      const res = await fetch('/api/claim-assistant', { method: 'POST', body: form })
 
       if (!res.ok) {
-        // A 413 (request too large -- several full-res photos at once) comes
-        // back from Vercel's platform as plain text, not JSON. Calling
-        // res.json() on that throws a cryptic parse error instead of naming
-        // the real problem, so check status before assuming a JSON body.
         if (res.status === 413) {
           throw new Error('Photos too large to send together — try attaching 2-3 at a time.')
         }
@@ -220,18 +137,7 @@ export default function CodeReferencePage() {
       }
 
       const data = await res.json()
-
-      if (attachedPhotos.length && typeof data.photosReceived === 'number' && data.photosReceived < attachedPhotos.length) {
-        const missing = attachedPhotos.length - data.photosReceived
-        console.error(`[ClaimConsult] photo mismatch: sent ${attachedPhotos.length}, server received ${data.photosReceived}`)
-        setMessages((prev) => [...prev, {
-          role: 'model',
-          content: `⚠️ ${missing} of ${attachedPhotos.length} photo${attachedPhotos.length > 1 ? 's' : ''} didn't make it to the AI — treat this answer as text-only.\n\n${data.answer}`,
-        }])
-      } else {
-        setMessages((prev) => [...prev, { role: 'model', content: data.answer }])
-      }
-      if (voiceModeRef.current) speak(data.answer)
+      setMessages((prev) => [...prev, { role: 'model', content: data.answer }])
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Request failed')
       setMessages((prev) => prev.slice(0, -1))
@@ -239,72 +145,30 @@ export default function CodeReferencePage() {
       setLoading(false)
     }
   }
-  sendMessageRef.current = sendMessage
-
-  const toggleVoiceMode = () => {
-    setVoiceMode((prev) => {
-      const next = !prev
-      if (!next) {
-        window.speechSynthesis?.cancel()
-        if (isListening) recognitionRef.current?.stop()
-      }
-      return next
-    })
-  }
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col h-[calc(100dvh-8rem)]">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-amber-400" />
-          Code Reference
+          <Sparkles className="w-6 h-6 text-amber-400" />
+          Claim Assistant
         </h1>
         <p className="text-zinc-400 text-sm mt-1">
-          {mode === 'lookup'
-            ? 'Ask anything about Xactimate codes, scoping rules, O&P, coverage, or estimating best practices'
-            : 'Describe a live claim situation and think it through with a second opinion'}
+          Your second pair of hands — notes, questions, a snipped email, anything claim related
         </p>
-      </div>
-
-      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 max-w-max mb-4">
-        <button onClick={() => switchMode('lookup')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${mode === 'lookup' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
-          <BookOpen className="w-3.5 h-3.5" /> Quick Lookup
-        </button>
-        <button onClick={() => switchMode('consult')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${mode === 'consult' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
-          <MessageSquare className="w-3.5 h-3.5" /> Claim Consult
-        </button>
       </div>
 
       <Card className="bg-zinc-900 border-zinc-800 flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
-            // Starter buttons live in here, inside the scrollable area, not
-            // as a separate block above the card -- that competed with the
-            // card for the page's fixed height budget and could push the
-            // input row below (fixed max-h-[calc(100dvh-8rem)]) is 8rem too
-            // short on a real phone here) the visible screen entirely.
             <div className="flex flex-col items-center text-zinc-600 py-6">
-              {mode === 'lookup' ? (
-                <>
-                  <BookOpen className="w-12 h-12 mb-3 opacity-20" />
-                  <p className="text-sm">Your Xactimate expert is ready</p>
-                  <p className="text-xs mt-1 mb-5">Ask about codes, scoping, O&P, coverage rules…</p>
-                </>
-              ) : (
-                <>
-                  <MessageSquare className="w-12 h-12 mb-3 opacity-20" />
-                  <p className="text-sm">Talk through a claim, live</p>
-                  <p className="text-xs mt-1 mb-5">Type or tap the mic and describe what you're seeing…</p>
-                </>
-              )}
+              <Sparkles className="w-12 h-12 mb-3 opacity-20" />
+              <p className="text-sm">Ready when you are</p>
+              <p className="text-xs mt-1 mb-5">Type, tap the mic, or attach a photo — pulls from the policy, Claim Manual, and Xactimate codes as needed</p>
               <div className="w-full">
-                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                  {mode === 'lookup' ? 'Quick questions' : 'Example scenarios'}
-                </p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Ideas to start with</p>
                 <div className="grid grid-cols-1 gap-2">
-                  {(mode === 'lookup' ? QUICK_QUESTIONS : CONSULT_STARTERS).map((q) => (
+                  {STARTERS.map((q) => (
                     <button
                       key={q}
                       onClick={() => sendMessage(q)}
@@ -340,16 +204,7 @@ export default function CodeReferencePage() {
             <div className="flex justify-start">
               <div className="bg-zinc-800 rounded-2xl px-4 py-3 flex items-center gap-2 text-zinc-400 text-sm">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                {elapsedSeconds > 8 ? `Still working… (${elapsedSeconds}s, can take up to a minute or two)` : 'Looking it up…'}
-              </div>
-            </div>
-          )}
-
-          {speaking && (
-            <div className="flex justify-start">
-              <div className="bg-zinc-800 rounded-2xl px-4 py-3 flex items-center gap-2 text-amber-400 text-sm">
-                <Volume2 className="w-3.5 h-3.5 animate-pulse" />
-                Speaking…
+                {elapsedSeconds > 8 ? `Still working… (${elapsedSeconds}s, can take up to a minute or two)` : 'Thinking…'}
               </div>
             </div>
           )}
@@ -379,16 +234,10 @@ export default function CodeReferencePage() {
           {/* Attach/dictate row, separate from type-and-send below -- camera +
               gallery + mic + text + clear + send all in one row overflowed
               off-screen on a real phone (text input and send button pushed
-              past the right edge). */}
+              past the right edge), same fix already applied on Code Reference. */}
           <div className="flex gap-2 mb-2">
             <CameraCapture
               onCapture={(file) => {
-                console.log(`[ClaimConsult] camera capture -> ${file.name}, ${file.size}b, ${file.type}`)
-                // Live getUserMedia captures are always re-encoded to JPEG in
-                // CameraCapture itself, but its native-picker fallback (when
-                // getUserMedia is unavailable/denied) hands back whatever the
-                // OS camera app produced -- same HEIC risk as the gallery
-                // picker below, so apply the same guard here.
                 if (/\.hei[cf]$/i.test(file.name) || /^image\/hei[cf]$/i.test(file.type)) {
                   setError('That photo came through as HEIC, which the AI can\'t read. Switch iPhone Settings → Camera → Formats to "Most Compatible", or try again — this button usually captures JPEG directly.')
                   return
@@ -401,7 +250,7 @@ export default function CodeReferencePage() {
             <button
               onClick={() => galleryInputRef.current?.click()}
               className="p-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-              title="Attach photo from library"
+              title="Attach photo or screenshot from library"
             >
               <ImagePlus className="w-4 h-4" />
             </button>
@@ -414,16 +263,9 @@ export default function CodeReferencePage() {
               onChange={(e) => {
                 if (e.target.files) {
                   const picked = Array.from(e.target.files)
-                  console.log(`[ClaimConsult] gallery select -> ${picked.length} file(s): ${picked.map((f) => `${f.name} (${f.size}b)`).join(', ')}`)
-                  // iPhones save camera-roll photos as HEIC by default. Chrome
-                  // can't decode HEIC in the canvas pipeline compressImage
-                  // relies on -- createImageBitmap silently fails and the raw
-                  // HEIC bytes go out mislabeled as JPEG, so the AI receives
-                  // data it can't actually read and reports back that nothing
-                  // came through, with no error surfaced anywhere along the
-                  // way. Reject those here, at attach time, with a message
-                  // that says what's actually wrong instead of letting it
-                  // fail silently three steps downstream.
+                  // iPhones save camera-roll photos/screenshots as HEIC by
+                  // default -- same guard as Code Reference, see its comment
+                  // for why this fails silently three steps downstream otherwise.
                   const heic = picked.filter((f) => /\.hei[cf]$/i.test(f.name) || /^image\/hei[cf]$/i.test(f.type))
                   const usable = picked.filter((f) => !heic.includes(f))
                   if (heic.length) {
@@ -434,8 +276,6 @@ export default function CodeReferencePage() {
                     )
                   }
                   if (usable.length) setPhotos((prev) => [...prev, ...usable])
-                } else {
-                  console.error('[ClaimConsult] gallery picker onChange fired with no files')
                 }
                 e.target.value = ''
               }}
@@ -447,15 +287,6 @@ export default function CodeReferencePage() {
                 className={`p-2.5 rounded-xl transition-colors flex-shrink-0 ${isListening ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white'}`}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
-            )}
-            {recognitionRef.current && (
-              <button
-                onClick={toggleVoiceMode}
-                title={voiceMode ? 'Voice mode on — answers are read aloud and the mic re-arms automatically' : 'Turn on voice mode (hands-free)'}
-                className={`p-2.5 rounded-xl transition-colors flex-shrink-0 ${voiceMode ? 'bg-amber-700 hover:bg-amber-600 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white'}`}
-              >
-                {voiceMode ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </button>
             )}
             {messages.length > 0 && (
@@ -474,7 +305,7 @@ export default function CodeReferencePage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
-              placeholder={isListening ? 'Listening…' : mode === 'lookup' ? 'Ask about any Xactimate code, scoping rule, or coverage question…' : 'Describe what you\'re seeing, or tap the mic…'}
+              placeholder={isListening ? 'Listening…' : 'Notes, a question, anything claim related…'}
               disabled={loading}
               className={`flex-1 bg-zinc-800 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition-colors disabled:opacity-50 ${isListening ? 'border-red-500 placeholder-red-400' : 'border-zinc-700 focus:border-amber-600'}`}
             />

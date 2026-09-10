@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
 import Anthropic from '@anthropic-ai/sdk'
+import { getActiveGeminiModels } from './gemini-models'
 
 // Types for our unified fallback response
 export interface AIFallbackResponse {
@@ -89,13 +90,30 @@ async function tryGemini(
   }
   contents.push({ text: prompt })
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents,
-    config: systemInstruction ? { systemInstruction } : undefined,
-  })
+  const models = await getActiveGeminiModels(process.env.GEMINI_API_KEY)
+  let lastError: any = null
+  for (const model of models) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: {
+          systemInstruction: systemInstruction || undefined,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      })
 
-  return response.text ? { text: response.text, provider: 'gemini' } : null
+      if (response.text) {
+        return { text: response.text, provider: 'gemini' }
+      }
+    } catch (err: any) {
+      lastError = err
+      console.warn(`Gemini model ${model} failed, trying next:`, err?.message || err)
+    }
+  }
+
+  if (lastError) throw lastError
+  return null
 }
 
 async function tryClaude(
@@ -126,17 +144,19 @@ async function tryClaude(
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-5',
-    max_tokens: 4000,
+    max_tokens: 8000,
+    thinking: { type: 'disabled' } as any,
     system: systemInstruction,
     messages: [{ role: 'user', content }],
   })
 
-  const textBlock = msg.content?.find((b) => b.type === 'text')
-  if (!textBlock) {
+  const textBlocks = (msg.content || []).filter((b: any) => b.type === 'text')
+  const fullText = textBlocks.map((b: any) => b.text).join('\n').trim()
+  if (!fullText) {
     console.error('Claude returned no text block:', msg.stop_reason, msg.content?.map((b) => b.type))
     return null
   }
-  return { text: textBlock.text, provider: 'claude' }
+  return { text: fullText, provider: 'claude' }
 }
 
 /**
@@ -162,57 +182,41 @@ export async function generateWithFallback(
   base64Pdfs?: string[] // Optional array of base64 PDFs (without data URI prefix) -- Claude and Gemini only, see tryGrok
 ): Promise<AIFallbackResponse> {
   const errors: string[] = []
-  // A real reconcile run (5 photos, 8-section structured output) hit even
-  // the 45s cap on all three providers at once -- turned out to be caused
-  // by a since-fixed bug producing blurry source photos, not the providers
-  // themselves. Claude is now confirmed both funded and reliable (it's the
-  // one that came through once photo quality was still bad but the timeout
-  // was generous), so it gets the primary slot and the lion's share of the
-  // budget; Grok and Gemini are the backup race.
-  const CLAUDE_TIMEOUT_MS = 85_000
-  const BACKUP_TIMEOUT_MS = 25_000 // 85 + 25 = 110s, under the 120s ceiling
+  const hasVisualMedia = (base64Images && base64Images.length > 0) || (base64Pdfs && base64Pdfs.length > 0)
 
-  // Claude tries alone first (see note above) so the common case stays fast
-  // and doesn't burn Gemini's 20/day free-tier cap for no reason.
-  const claudeStart = Date.now()
-  try {
-    const claude = await withTimeout(
-      tryClaude(prompt, systemInstruction, base64Images, base64Pdfs),
-      CLAUDE_TIMEOUT_MS,
-      'Claude'
-    )
-    console.log(`Claude attempt took ${Date.now() - claudeStart}ms`)
-    if (claude) return claude
-  } catch (e: any) {
-    console.error(`Claude failed after ${Date.now() - claudeStart}ms:`, e.message)
-    errors.push(`Claude: ${e.message}`)
-  }
+  // Smart routing:
+  // When photos/PDFs of estimates are provided, Gemini Flash is 10x-20x faster than Claude
+  // at vision/OCR extraction (~3-5s vs 60-80s), preventing Vercel & mobile socket timeouts.
+  // For text-only synthesis & reasoning (diffAndDraft), Claude Sonnet leads.
+  const providerOrder = hasVisualMedia
+    ? [
+        { fn: tryGemini, label: 'Gemini', timeoutMs: 50_000 },
+        { fn: tryClaude, label: 'Claude', timeoutMs: 55_000 },
+        { fn: tryGrok, label: 'Grok', timeoutMs: 25_000 },
+      ]
+    : [
+        { fn: tryClaude, label: 'Claude', timeoutMs: 45_000 },
+        { fn: tryGemini, label: 'Gemini', timeoutMs: 30_000 },
+        { fn: tryGrok, label: 'Grok', timeoutMs: 25_000 },
+      ]
 
-  // Claude didn't come through — race the two backups against each other
-  // instead of trying them one at a time, so a slow Gemini call doesn't
-  // block Grok from getting a turn within the remaining budget.
-  //
-  // Explicit labels here, not attempt.name — production builds minify
-  // function names (e.g. tryGemini becomes "h"), which is why an earlier
-  // error showed unreadable single-letter provider names instead of
-  // "Gemini" / "Grok".
-  const backups: { fn: typeof tryGemini; label: string }[] = [
-    { fn: tryGemini, label: 'Gemini' },
-    { fn: tryGrok, label: 'Grok' },
-  ]
-  const settled = await Promise.allSettled(
-    backups.map(({ fn, label }) =>
-      withTimeout(fn(prompt, systemInstruction, base64Images, base64Pdfs), BACKUP_TIMEOUT_MS, label)
-    )
-  )
-
-  for (let i = 0; i < settled.length; i++) {
-    const outcome = settled[i]
-    const label = backups[i].label
-    if (outcome.status === 'fulfilled' && outcome.value) return outcome.value
-    if (outcome.status === 'rejected') {
-      console.error(`${label} failed:`, outcome.reason?.message ?? outcome.reason)
-      errors.push(`${label}: ${outcome.reason?.message ?? outcome.reason}`)
+  for (const provider of providerOrder) {
+    const start = Date.now()
+    try {
+      console.log(`[ai-fallback] Attempting ${provider.label} (${hasVisualMedia ? 'vision' : 'text'})...`)
+      const res = await withTimeout(
+        provider.fn(prompt, systemInstruction, base64Images, base64Pdfs),
+        provider.timeoutMs,
+        provider.label
+      )
+      if (res && res.text) {
+        console.log(`[ai-fallback] ${provider.label} succeeded in ${Date.now() - start}ms`)
+        return res
+      }
+    } catch (err: any) {
+      const elapsed = Date.now() - start
+      console.warn(`[ai-fallback] ${provider.label} failed after ${elapsed}ms:`, err?.message || err)
+      errors.push(`${provider.label}: ${err?.message || err}`)
     }
   }
 

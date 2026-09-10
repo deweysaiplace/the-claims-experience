@@ -327,7 +327,7 @@ export default function FieldScopePage() {
           <Crosshair className="w-6 h-6 text-emerald-400" />
           Field Scope
         </h1>
-        <p className="text-slate-400 text-sm mt-1">
+        <p className="text-zinc-400 text-sm mt-1">
           Capture photos + voice notes → AI generates damage assessment, Xactimate line items, and field narrative
         </p>
       </div>
@@ -336,29 +336,29 @@ export default function FieldScopePage() {
         {/* LEFT: Inputs (3 cols) */}
         <div className="lg:col-span-3 space-y-4">
           {/* Claim Context — Collapsible */}
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-0 cursor-pointer" onClick={() => setContextOpen(!contextOpen)}>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white text-sm">Claim Context</CardTitle>
-                {contextOpen ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                {contextOpen ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
               </div>
             </CardHeader>
             {contextOpen && (
               <CardContent className="pt-3 pb-4 space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Claim Ref</label>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Claim Ref</label>
                   <input type="text" value={claimRef} onChange={(e) => setClaimRef(e.target.value)} placeholder="e.g. 7842"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500" />
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-emerald-500" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Property Address</label>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Property Address</label>
                   <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 412 Maple St, Neptune NJ"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500" />
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-emerald-500" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Location</label>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Location</label>
                   {location ? (
-                    <div className="flex items-center gap-2 bg-slate-800 border border-emerald-500/30 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2 bg-zinc-800 border border-emerald-500/30 rounded-lg px-3 py-2">
                       <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                       <div className="min-w-0 flex-1">
                         <a
@@ -369,7 +369,7 @@ export default function FieldScopePage() {
                         >
                           {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
                         </a>
-                        <p className="text-[10px] text-slate-500">
+                        <p className="text-[10px] text-zinc-500">
                           +/-{Math.round(location.accuracy)}m &middot;{' '}
                           {new Date(location.capturedAt).toLocaleTimeString('en-US')}
                         </p>
@@ -377,7 +377,7 @@ export default function FieldScopePage() {
                       <button
                         onClick={captureLocation}
                         disabled={locating}
-                        className="text-xs text-slate-400 hover:text-white px-2 py-1 flex-shrink-0"
+                        className="text-xs text-zinc-400 hover:text-white px-2 py-1 flex-shrink-0"
                       >
                         {locating ? '...' : 'Redo'}
                       </button>
@@ -386,7 +386,7 @@ export default function FieldScopePage() {
                     <button
                       onClick={captureLocation}
                       disabled={locating}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-colors disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white text-sm font-medium transition-colors disabled:opacity-50"
                     >
                       {locating ? (
                         <><Loader2 className="w-4 h-4 animate-spin" /> Getting GPS fix...</>
@@ -398,11 +398,11 @@ export default function FieldScopePage() {
                   {locationError && <p className="text-red-400 text-xs mt-1">{locationError}</p>}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Cause of Loss</label>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Cause of Loss</label>
                   <div className="flex flex-wrap gap-2">
                     {CAUSE_OPTIONS.map((c) => (
                       <button key={c} onClick={() => setCauseOfLoss(c)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${causeOfLoss === c ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'}`}>
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${causeOfLoss === c ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white border border-zinc-700'}`}>
                         {c}
                       </button>
                     ))}
@@ -413,7 +413,7 @@ export default function FieldScopePage() {
           </Card>
 
           {/* Photo Capture */}
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-2">
               <CardTitle className="text-white text-sm flex items-center gap-2">
                 <Camera className="w-4 h-4 text-emerald-400" />
@@ -425,13 +425,13 @@ export default function FieldScopePage() {
               {photos.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {photos.map((photo, i) => (
-                    <div key={i} className="relative rounded-lg overflow-hidden border border-slate-700 group aspect-square">
+                    <div key={i} className="relative rounded-lg overflow-hidden border border-zinc-700 group aspect-square">
                       <img src={previews[i]} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                       <button onClick={() => removePhoto(i)}
-                        className="absolute top-1 right-1 p-1 bg-black/70 rounded-md text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        className="absolute top-1 right-1 p-1 bg-black/70 rounded-md text-zinc-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="w-3 h-3" />
                       </button>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-0.5 text-[10px] text-slate-300">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-0.5 text-[10px] text-zinc-300">
                         #{i + 1}
                       </div>
                     </div>
@@ -447,7 +447,7 @@ export default function FieldScopePage() {
                 />
                 <div {...getRootProps()}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-sm font-semibold cursor-pointer transition-all
-                    ${isDragActive ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'}`}>
+                    ${isDragActive ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white'}`}>
                   <input {...getInputProps()} />
                   <Upload className="w-4 h-4" /> Upload
                 </div>
@@ -456,7 +456,7 @@ export default function FieldScopePage() {
           </Card>
 
           {/* Voice Notes */}
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-2">
               <CardTitle className="text-white text-sm flex items-center gap-2">
                 <Mic className="w-4 h-4 text-emerald-400" />
@@ -469,18 +469,18 @@ export default function FieldScopePage() {
                   className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all
                     ${isRecording
                       ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'}`}>
+                      : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'}`}>
                   {isRecording ? <><MicOff className="w-5 h-5" /> Stop Recording</> : <><Mic className="w-5 h-5" /> Record Field Notes</>}
                 </button>
               )}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                     {isRecording ? 'Live Transcript' : 'Transcript / Notes'}
                   </label>
                   {transcript && (
                     <button onClick={() => { setTranscript(''); transcriptRef.current = '' }}
-                      className="text-slate-600 hover:text-red-400 text-xs flex items-center gap-1">
+                      className="text-zinc-600 hover:text-red-400 text-xs flex items-center gap-1">
                       <Trash2 className="w-3 h-3" /> Clear
                     </button>
                   )}
@@ -489,7 +489,7 @@ export default function FieldScopePage() {
                   onChange={(e) => { setTranscript(e.target.value); transcriptRef.current = e.target.value }}
                   placeholder="Walk the property and describe what you see… or type notes here."
                   rows={4}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 resize-none font-mono" />
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:border-emerald-500 resize-none font-mono" />
               </div>
             </CardContent>
           </Card>
@@ -506,7 +506,7 @@ export default function FieldScopePage() {
             )}
           </button>
           {loading && (
-            <p className="text-center text-xs text-slate-500">
+            <p className="text-center text-xs text-zinc-500">
               Photo analysis can take up to a minute or two — this is still working, not stuck.
             </p>
           )}
@@ -515,12 +515,12 @@ export default function FieldScopePage() {
         {/* RIGHT: Results (2 cols) */}
         <div className="lg:col-span-2">
           {result ? (
-            <Card className="bg-slate-900 border-slate-800 sticky top-6">
+            <Card className="bg-zinc-900 border-zinc-800 sticky top-6">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-white text-sm">
                     Scope Results
-                    {provider && <span className="ml-2 text-xs text-slate-500 font-normal">via {provider}</span>}
+                    {provider && <span className="ml-2 text-xs text-zinc-500 font-normal">via {provider}</span>}
                   </CardTitle>
                   <div className="flex gap-1.5 flex-wrap justify-end">
                     <button onClick={handleSavePortal} disabled={saving}
@@ -529,7 +529,7 @@ export default function FieldScopePage() {
                       {saved ? 'Saved!' : 'Save'}
                     </button>
                     <button onClick={handleCopy}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium">
                       {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
                       {copied ? 'Copied' : 'Copy'}
                     </button>
@@ -543,16 +543,16 @@ export default function FieldScopePage() {
                 {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
               </CardHeader>
               <CardContent className="pt-0 max-h-[calc(100dvh-200px)] overflow-y-auto">
-                <div className="text-slate-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-td:border-slate-700 prose-th:border-slate-700 p-4">
+                <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-4">
                   <ReactMarkdown>{result}</ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-600 lg:sticky lg:top-6">
+            <div className="flex flex-col items-center justify-center h-64 text-zinc-600 lg:sticky lg:top-6">
               <Crosshair className="w-16 h-16 mb-4 opacity-15" />
               <p className="text-sm text-center">Take photos & record notes,<br />then run analysis</p>
-              <p className="text-xs text-slate-700 mt-2">AI will generate line items + narrative</p>
+              <p className="text-xs text-zinc-700 mt-2">AI will generate line items + narrative</p>
             </div>
           )}
         </div>

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Claims Experience",
   description: "Insurance Adjuster Toolkit — Estimate Reconciliation & Field Tools",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Claims" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Claims Experience" },
   icons: {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a", // slate-950
+  themeColor: "#09090b", // zinc-950
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -49,7 +49,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Claims Experience" />
       </head>
-      <body className="min-h-full bg-slate-950 text-white">
+      <body className="min-h-full bg-zinc-950 text-white">
         {children}
         <script dangerouslySetInnerHTML={{
           __html: `

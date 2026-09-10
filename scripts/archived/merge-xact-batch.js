@@ -1,3 +1,10 @@
+// ARCHIVED 8/19/2026 -- superseded by scripts/build-xactimate-codes.js, which
+// rebuilds xactimate-codes.json from scratch out of every reviewed batch file
+// in src/data/xact-codes-source/, the same clean regenerate-don't-mutate
+// pattern as build-policy-docs.js. This script's incremental in-place-mutation
+// approach (and its hardcoded default filename from one specific past merge)
+// is no longer how codes get added. Kept for reference only.
+//
 // Merges a reviewed/approved batch of extracted Xactimate codes into the
 // live src/data/xactimate-codes.json. Adds new codes, updates existing ones
 // (the reviewed data is trusted over whatever the original 94-photo
