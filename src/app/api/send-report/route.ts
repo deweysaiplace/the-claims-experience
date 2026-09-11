@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
+import { parseEngineerReport, generateEngineerReportHtml } from '@/lib/report-formatter'
 
 export async function POST(request: NextRequest) {
   try {
-    const { subject, body, claimRef } = await request.json() as {
+    const { subject, body, claimRef, address, html } = await request.json() as {
       subject: string
       body: string
       claimRef?: string
+      address?: string
+      html?: string
     }
 
     const recipients = [
@@ -39,12 +42,19 @@ export async function POST(request: NextRequest) {
 
     const emailSubject = subject || `Claims Experience Report${claimRef ? ` — ${claimRef}` : ''}`
 
+    // Parse data to render rich HTML email if not provided directly
+    let finalHtml = html
+    if (!finalHtml && body) {
+      const parsedData = parseEngineerReport(body)
+      finalHtml = generateEngineerReportHtml(parsedData, claimRef, address)
+    }
+
     await transporter.sendMail({
       from: `"Claims Experience" <${process.env.GMAIL_USER}>`,
       to: recipients,
       subject: emailSubject,
-      text: body,
-      html: `<pre style="font-family: monospace; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
+      text: body.replace(/<\/?(summary_data|policy_alignment|xactimate_scope|file_note)>/gi, ''),
+      html: finalHtml || `<pre style="font-family: monospace; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
     })
 
     return NextResponse.json({ success: true, sentTo: recipients })

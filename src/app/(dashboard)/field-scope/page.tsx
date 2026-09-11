@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {
   Camera, Mic, MicOff, Upload, Loader2, Copy, Mail, Check,
-  FileImage, X, Crosshair, Trash2, Plus, FileText, ChevronDown, ChevronUp, MapPin,
+  FileImage, X, Crosshair, Trash2, Plus, FileText, ChevronDown, ChevronUp, MapPin, FileSpreadsheet,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
@@ -13,6 +13,8 @@ import { readJsonOrThrow } from '@/lib/upload'
 import { getFieldLocation, formatLocation, mapsUrl, type FieldLocation } from '@/lib/geolocation'
 import CameraCapture from '@/components/CameraCapture'
 import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
+import { parseEngineerReport } from '@/lib/report-formatter'
+import ScopeEditor from '@/components/xact/ScopeEditor'
 
 
 
@@ -512,51 +514,76 @@ export default function FieldScopePage() {
           )}
         </div>
 
-        {/* RIGHT: Results (2 cols) */}
-        <div className="lg:col-span-2">
-          {result ? (
-            <Card className="bg-zinc-900 border-zinc-800 sticky top-6">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-white text-sm">
-                    Scope Results
-                    {provider && <span className="ml-2 text-xs text-zinc-500 font-normal">via {provider}</span>}
-                  </CardTitle>
-                  <div className="flex gap-1.5 flex-wrap justify-end">
-                    <button onClick={handleSavePortal} disabled={saving}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-medium transition-colors">
-                      {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
-                      {saved ? 'Saved!' : 'Save'}
-                    </button>
-                    <button onClick={handleCopy}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium">
-                      {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                      {copied ? 'Copied' : 'Copy'}
-                    </button>
-                    <button onClick={handleEmail} disabled={emailSending}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium">
-                      {emailSending ? <Loader2 className="w-3 h-3 animate-spin" /> : emailSent ? <Check className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                      {emailSent ? 'Sent!' : 'Email'}
-                    </button>
-                  </div>
-                </div>
-                {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
-              </CardHeader>
-              <CardContent className="pt-0 max-h-[calc(100dvh-200px)] overflow-y-auto">
-                <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-emerald-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-4">
-                  <ReactMarkdown>{result}</ReactMarkdown>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-zinc-600 lg:sticky lg:top-6">
-              <Crosshair className="w-16 h-16 mb-4 opacity-15" />
-              <p className="text-sm text-center">Take photos & record notes,<br />then run analysis</p>
-              <p className="text-xs text-zinc-700 mt-2">AI will generate line items + narrative</p>
-            </div>
-          )}
+          {/* RIGHT: Results (2 cols) */}
+          <div className="lg:col-span-2">
+            {result ? (() => {
+              const parsed = parseEngineerReport(result)
+              return (
+                <Card className="bg-zinc-900 border-zinc-800 sticky top-6 shadow-xl">
+                  <CardHeader className="pb-3 border-b border-zinc-800">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-white text-sm font-bold flex items-center gap-2">
+                          <Crosshair className="w-4 h-4 text-emerald-400" /> Field Scope Report
+                        </CardTitle>
+                        {provider && <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700 font-mono">via {provider}</span>}
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap justify-end">
+                        <button onClick={handleEmail} disabled={emailSending}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-all active:scale-95 shadow-sm">
+                          {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : emailSent ? <Check className="w-3.5 h-3.5 text-white" /> : <Mail className="w-3.5 h-3.5" />}
+                          {emailSent ? 'Sent HTML Report!' : 'Email Report'}
+                        </button>
+                        <button onClick={handleSavePortal} disabled={saving}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-semibold transition-colors">
+                          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                          {saved ? 'Saved!' : 'Save'}
+                        </button>
+                        <button onClick={handleCopy}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold">
+                          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copied ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                    {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
+                  </CardHeader>
+
+                  <CardContent className="pt-4 space-y-4 max-h-[calc(100dvh-200px)] overflow-y-auto">
+                    {/* Status Pill */}
+                    <div className="flex items-center justify-between bg-zinc-950 p-2.5 rounded-xl border border-zinc-800 text-xs">
+                      <span className="text-zinc-400 font-medium">Coverage Determination:</span>
+                      <span className={`px-2.5 py-0.5 rounded text-[11px] font-black ${
+                        parsed.summary.coverageStatus === 'excluded' ? 'bg-red-950 text-red-400 border border-red-800' :
+                        parsed.summary.coverageStatus === 'limited' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                        'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                      }`}>
+                        {parsed.summary.coverageStatus === 'excluded' ? '🔴 EXCLUDED / DENIED' :
+                         parsed.summary.coverageStatus === 'limited' ? '🟡 LIMITED REPAIR' : '🟢 COVERED DAMAGE'}
+                      </span>
+                    </div>
+
+                    {/* Scope Table if parsed */}
+                    {parsed.scope.rows.length > 0 && (
+                      <ScopeEditor initialRows={parsed.scope.rows} />
+                    )}
+
+                    {/* Markdown Body */}
+                    <div className="text-zinc-200 prose prose-invert prose-sm max-w-none prose-headings:text-emerald-400 prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700">
+                      <ReactMarkdown>{parsed.cleanFullReport}</ReactMarkdown>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })() : (
+              <div className="flex flex-col items-center justify-center h-64 text-zinc-600 lg:sticky lg:top-6">
+                <Crosshair className="w-16 h-16 mb-4 opacity-15" />
+                <p className="text-sm text-center">Take photos & record notes,<br />then run analysis</p>
+                <p className="text-xs text-zinc-700 mt-2">AI will generate line items + narrative</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
+    )
+  }

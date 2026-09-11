@@ -9,6 +9,7 @@ import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
 import CameraCapture from '@/components/CameraCapture'
 import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
+import { parseEngineerReport } from '@/lib/report-formatter'
 
 function MultiPageDropzone({
   label,
@@ -385,38 +386,56 @@ export default function ReconcilerPage() {
         </CardContent>
       </Card>
 
-      {result && (
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white text-base">Analysis Results</CardTitle>
-              <div className="flex gap-2 flex-wrap justify-end">
-                <button onClick={handleSavePortal} disabled={saving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-medium transition-colors">
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
-                  {saved ? 'Saved!' : 'Save'}
-                </button>
-                <button onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors">
-                  {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-                <button onClick={handleEmail} disabled={emailSending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-medium transition-colors">
-                  {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : emailSent ? <Check className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
-                  {emailSent ? 'Sent!' : 'Email'}
-                </button>
+      {result && (() => {
+        const parsed = parseEngineerReport(result)
+        return (
+          <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+            <CardHeader className="pb-3 border-b border-zinc-800">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="text-white text-base font-bold flex items-center gap-2">
+                  <GitCompare className="w-5 h-5 text-amber-400" /> Reconciler Audit Results
+                </CardTitle>
+                <div className="flex gap-2 flex-wrap justify-end">
+                  <button onClick={handleEmail} disabled={emailSending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold transition-all active:scale-95 shadow-sm">
+                    {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : emailSent ? <Check className="w-3.5 h-3.5 text-white" /> : <Mail className="w-3.5 h-3.5" />}
+                    {emailSent ? 'Sent HTML Report!' : 'Email HTML Report'}
+                  </button>
+                  <button onClick={handleSavePortal} disabled={saving}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-semibold transition-colors">
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                    {saved ? 'Saved!' : 'Save'}
+                  </button>
+                  <button onClick={handleCopy}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold transition-colors">
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? 'Copied Full Report!' : 'Copy'}
+                  </button>
+                </div>
               </div>
-            </div>
-            {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-amber-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-4">
-              <ReactMarkdown>{result}</ReactMarkdown>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              {/* Executive Status Bar */}
+              <div className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-xs">
+                <span className="text-zinc-400 font-medium">Reconciliation Verdict:</span>
+                <span className={`px-2.5 py-0.5 rounded text-[11px] font-black ${
+                  parsed.summary.coverageStatus === 'excluded' ? 'bg-red-950 text-red-400 border border-red-800' :
+                  parsed.summary.coverageStatus === 'limited' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                  'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                }`}>
+                  {parsed.summary.coverageStatus === 'excluded' ? '🔴 DISCREPANCIES / EXCLUDED ITEMS DETECTED' :
+                   parsed.summary.coverageStatus === 'limited' ? '🟡 VARIANCE / QUANTITY DIFFERENCES' : '🟢 RECONCILED / COVERED'}
+                </span>
+              </div>
+
+              <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-amber-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-2">
+                <ReactMarkdown>{parsed.cleanFullReport}</ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

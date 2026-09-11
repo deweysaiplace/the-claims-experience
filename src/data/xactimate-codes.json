@@ -1,7 +1,7 @@
 {
   "version": "4.0",
-  "description": "Xactimate price list -- rebuilt from 1 reviewed source batch(es) in xact-codes-source/. 12413 codes.",
-  "generatedAt": "2026-08-19",
+  "description": "Xactimate price list -- rebuilt from 2 reviewed source batch(es) in xact-codes-source/. 12443 codes.",
+  "generatedAt": "2026-09-11",
   "source": "src/data/xact-codes-source/",
   "codes": [
     {
@@ -894,6 +894,50 @@
         "chrome",
         "brass",
         "copper"
+      ]
+    },
+    {
+      "code": "APP DW",
+      "description": "Dishwasher - detach and reset / replace standard unit",
+      "category": "Appliances",
+      "unit": "EA",
+      "keywords": [
+        "dishwasher",
+        "detach",
+        "and",
+        "reset",
+        "replace",
+        "standard",
+        "unit"
+      ]
+    },
+    {
+      "code": "APP HOOD",
+      "description": "Range hood / microwave exhaust fan replacement",
+      "category": "Appliances",
+      "unit": "EA",
+      "keywords": [
+        "range",
+        "hood",
+        "microwave",
+        "exhaust",
+        "fan",
+        "replacement"
+      ]
+    },
+    {
+      "code": "APP REFR",
+      "description": "Refrigerator - detach and reset / water line reconnection",
+      "category": "Appliances",
+      "unit": "EA",
+      "keywords": [
+        "refrigerator",
+        "detach",
+        "and",
+        "reset",
+        "water",
+        "line",
+        "reconnection"
       ]
     },
     {
@@ -52113,6 +52157,64 @@
       ]
     },
     {
+      "code": "ELE GFCI",
+      "description": "Electrical GFCI outlet replacement (kitchen / bathroom)",
+      "category": "Electrical",
+      "unit": "EA",
+      "keywords": [
+        "electrical",
+        "gfci",
+        "outlet",
+        "replacement",
+        "kitchen",
+        "bathroom"
+      ]
+    },
+    {
+      "code": "ELE LIGHT",
+      "description": "Light fixture - recessed LED canister / surface mount",
+      "category": "Electrical",
+      "unit": "EA",
+      "keywords": [
+        "light",
+        "fixture",
+        "recess",
+        "led",
+        "canister",
+        "surface",
+        "mount"
+      ]
+    },
+    {
+      "code": "ELE OUTLET",
+      "description": "Electrical outlet / duplex receptacle 15A replacement",
+      "category": "Electrical",
+      "unit": "EA",
+      "keywords": [
+        "electrical",
+        "outlet",
+        "duplex",
+        "receptacle",
+        "15a",
+        "replacement"
+      ]
+    },
+    {
+      "code": "ELE PANEL",
+      "description": "Electrical panel - 200A main circuit breaker upgrade",
+      "category": "Electrical",
+      "unit": "EA",
+      "keywords": [
+        "electrical",
+        "panel",
+        "200a",
+        "main",
+        "circuit",
+        "breaker",
+        "upgrade"
+      ]
+    },
+    {
       "code": "ELE110",
       "description": "110 volt copper wiring run, box and outlet",
       "category": "Electrical",
@@ -66888,6 +66990,32 @@
       ]
     },
     {
+      "code": "FCC CPT",
+      "description": "Carpet - medium grade (nylon / polyester blend)",
+      "category": "Flooring - Carpet",
+      "unit": "SF",
+      "keywords": [
+        "carpet",
+        "medium",
+        "grade",
+        "nylon",
+        "polyester",
+        "blend"
+      ]
+    },
+    {
+      "code": "FCC PAD",
+      "description": "Carpet pad - 7/16\" 6lb rebond",
+      "category": "Flooring - Carpet",
+      "unit": "SF",
+      "keywords": [
+        "carpet",
+        "pad",
+        "6lb",
+        "rebond"
+      ]
+    },
+    {
       "code": "FCCAV",
       "description": "Carpet",
       "category": "Flooring",
@@ -69001,6 +69129,53 @@
         "crack",
         "membrane",
         "mil"
+      ]
+    },
+    {
+      "code": "FCV LVP",
+      "description": "Luxury vinyl plank flooring (LVP) - glue down or click lock",
+      "category": "Flooring - Vinyl",
+      "unit": "SF",
+      "keywords": [
+        "luxury",
+        "vinyl",
+        "plank",
+        "floor",
+        "lvp",
+        "glue",
+        "down",
+        "click",
+        "lock"
+      ]
+    },
+    {
+      "code": "FCV LVP+",
+      "description": "Luxury vinyl plank flooring (LVP) - high grade / acoustic underlayment",
+      "category": "Flooring - Vinyl",
+      "unit": "SF",
+      "keywords": [
+        "luxury",
+        "vinyl",
+        "plank",
+        "floor",
+        "lvp",
+        "high",
+        "grade",
+        "acoustic",
+        "underlayment"
+      ]
+    },
+    {
+      "code": "FCV SHEET",
+      "description": "Sheet vinyl flooring - standard grade",
+      "category": "Flooring - Vinyl",
+      "unit": "SF",
+      "keywords": [
+        "sheet",
+        "vinyl",
+        "floor",
+        "standard",
+        "grade"
       ]
     },
     {
@@ -116725,6 +116900,76 @@
       ]
     },
     {
+      "code": "PLM FAUCET",
+      "description": "Faucet - kitchen / lavatory lever handle faucet",
+      "category": "Plumbing",
+      "unit": "EA",
+      "keywords": [
+        "faucet",
+        "kitchen",
+        "lavatory",
+        "lever",
+        "handle"
+      ]
+    },
+    {
+      "code": "PLM SINK",
+      "description": "Sink - undermount stainless steel / porcelain vanity sink",
+      "category": "Plumbing",
+      "unit": "EA",
+      "keywords": [
+        "sink",
+        "undermount",
+        "stainless",
+        "steel",
+        "porcelain",
+        "vanity"
+      ]
+    },
+    {
+      "code": "PLM SLAB",
+      "description": "Slab leak repair - copper pipe bypass / repipe",
+      "category": "Plumbing",
+      "unit": "EA",
+      "keywords": [
+        "slab",
+        "leak",
+        "repair",
+        "copper",
+        "pipe",
+        "bypass",
+        "repipe"
+      ]
+    },
+    {
+      "code": "PLM TOILET",
+      "description": "Toilet - replace standard 2-piece elongated bowl",
+      "category": "Plumbing",
+      "unit": "EA",
+      "keywords": [
+        "toilet",
+        "replace",
+        "standard",
+        "piece",
+        "elongat",
+        "bowl"
+      ]
+    },
+    {
+      "code": "PLM WTRHTR",
+      "description": "Water heater - 50 gallon gas / electric unit",
+      "category": "Plumbing",
+      "unit": "EA",
+      "keywords": [
+        "water",
+        "heater",
+        "gallon",
+        "gas",
+        "electric",
+        "unit"
+      ]
+    },
+    {
       "code": "PLMCO6",
       "description": "Sewer clean-out - 6\" diameter",
       "category": "Plumbing",
@@ -122017,6 +122262,61 @@
         "trim",
         "commercial",
         "frp"
+      ]
+    },
+    {
+      "code": "PNT EXT",
+      "description": "Paint exterior siding / trim - 2 coats",
+      "category": "Painting",
+      "unit": "SF",
+      "keywords": [
+        "paint",
+        "exterior",
+        "sid",
+        "trim",
+        "coat"
+      ]
+    },
+    {
+      "code": "PNT P2",
+      "description": "Paint 2 coats - walls / ceilings (latex / acrylic)",
+      "category": "Painting",
+      "unit": "SF",
+      "keywords": [
+        "paint",
+        "coat",
+        "wall",
+        "ceiling",
+        "latex",
+        "acrylic"
+      ]
+    },
+    {
+      "code": "PNT PRIM",
+      "description": "Primer / stain-blocking sealer coat (KILZ / Zinsser)",
+      "category": "Painting",
+      "unit": "SF",
+      "keywords": [
+        "primer",
+        "stain",
+        "block",
+        "sealer",
+        "coat",
+        "kilz",
+        "zinsser"
+      ]
+    },
+    {
+      "code": "PNT TRIM",
+      "description": "Paint baseboard / casing / trim - 2 coats",
+      "category": "Painting",
+      "unit": "LF",
+      "keywords": [
+        "paint",
+        "baseboard",
+        "cas",
+        "trim",
+        "coat"
       ]
     },
     {
@@ -151011,6 +151311,44 @@
       ]
     },
     {
+      "code": "TIL BACK",
+      "description": "Tile backer board - 1/2\" cement board / WonderBoard",
+      "category": "Tile",
+      "unit": "SF",
+      "keywords": [
+        "tile",
+        "backer",
+        "board",
+        "cement",
+        "wonderboard"
+      ]
+    },
+    {
+      "code": "TIL CER",
+      "description": "Tile - ceramic floor / wall tile",
+      "category": "Tile",
+      "unit": "SF",
+      "keywords": [
+        "tile",
+        "ceramic",
+        "floor",
+        "wall"
+      ]
+    },
+    {
+      "code": "TIL PORC",
+      "description": "Tile - porcelain floor tile 12\"x24\" or larger",
+      "category": "Tile",
+      "unit": "SF",
+      "keywords": [
+        "tile",
+        "porcelain",
+        "floor",
+        "x24",
+        "larger"
+      ]
+    },
+    {
       "code": "TILAV",
       "description": "Ceramic/porcelain tile",
       "category": "Tile",
@@ -156008,6 +156346,34 @@
       ]
     },
     {
+      "code": "WDF ENG",
+      "description": "Engineered hardwood flooring - pre-finished click lock",
+      "category": "Flooring - Wood",
+      "unit": "SF",
+      "keywords": [
+        "engineer",
+        "hardwood",
+        "floor",
+        "pre",
+        "finish",
+        "click",
+        "lock"
+      ]
+    },
+    {
+      "code": "WDF HARD",
+      "description": "Hardwood flooring - solid oak / maple 3/4\"",
+      "category": "Flooring - Wood",
+      "unit": "SF",
+      "keywords": [
+        "hardwood",
+        "floor",
+        "solid",
+        "oak",
+        "maple"
+      ]
+    },
+    {
       "code": "WDP10A",
       "description": "10-0 6-8 alum. sliding patio door - anodized",
       "category": "Windows",
@@ -157197,6 +157563,65 @@
         "installer",
         "per",
         "hour"
+      ]
+    },
+    {
+      "code": "WND FLSH",
+      "description": "Window flashing & self-adhered membrane tape",
+      "category": "Windows",
+      "unit": "LF",
+      "keywords": [
+        "window",
+        "flash",
+        "self",
+        "adher",
+        "membrane",
+        "tape"
+      ]
+    },
+    {
+      "code": "WND GLAZ",
+      "description": "Window glass replacement - double pane insulated unit",
+      "category": "Windows",
+      "unit": "EA",
+      "keywords": [
+        "window",
+        "glass",
+        "replacement",
+        "double",
+        "pane",
+        "insulat",
+        "unit"
+      ]
+    },
+    {
+      "code": "WND VINYL",
+      "description": "Vinyl window - double hung / low-E glass",
+      "category": "Windows",
+      "unit": "EA",
+      "keywords": [
+        "vinyl",
+        "window",
+        "double",
+        "hung",
+        "low",
+        "glass"
+      ]
+    },
+    {
+      "code": "WND VINYL+",
+      "description": "Vinyl window - custom size / triple pane impact rated",
+      "category": "Windows",
+      "unit": "EA",
+      "keywords": [
+        "vinyl",
+        "window",
+        "custom",
+        "size",
+        "triple",
+        "pane",
+        "impact",
+        "rat"
       ]
     },
     {

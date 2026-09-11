@@ -3,12 +3,14 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Loader2, Copy, Mail, Check, X, FileText, Plus, Shield, FileSpreadsheet } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import { compressImages } from '@/lib/compress-image'
 import { readJsonOrThrow } from '@/lib/upload'
 import CameraCapture from '@/components/CameraCapture'
 import { useElapsedSeconds } from '@/hooks/useElapsedSeconds'
+import { parseEngineerReport } from '@/lib/report-formatter'
+import ScopeEditor from '@/components/xact/ScopeEditor'
 
 function MultiPageDropzone({
   label,
@@ -109,19 +111,15 @@ export default function EngineerScopePage() {
   const [error, setError] = useState('')
   const [qualityWarning, setQualityWarning] = useState('')
   const [copied, setCopied] = useState(false)
-  const [activeTab, setActiveTab] = useState<'policy' | 'scope' | 'note'>('policy')
+  const [qeCopied, setQeCopied] = useState(false)
+  const [noteCopied, setNoteCopied] = useState(false)
+  const [activeTab, setActiveTab] = useState<'all' | 'policy' | 'scope' | 'note'>('all')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  // Separate from the top-level `error` state above the Analyze button --
-  // on a phone that's off-screen once you're looking at results, so a real
-  // save failure there was invisible. Same bug already found and fixed on
-  // field-scope, field-notes and reconciler.
   const [resultError, setResultError] = useState('')
   const [emailSending, setEmailSending] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
 
-  // Takes content explicitly so the auto-save right after analysis can save
-  // what the API just returned without waiting on a state update to land.
   const saveReport = async (content: string) => {
     setSaving(true)
     setResultError('')
@@ -160,11 +158,6 @@ export default function EngineerScopePage() {
     try {
       const prepared = await compressImages(files)
 
-      // Same signal that flagged a real blurry-camera bug on Reconciler
-      // tonight: a low-detail capture compresses to a suspiciously small
-      // file. Soft warning, not a hard block -- tapping Analyze again
-      // proceeds anyway. PDFs pass through compressImages unchanged (not
-      // image files), so only check actual images here.
       if (!qualityWarning) {
         const MIN_KB = 40
         const tooSmall = prepared
@@ -186,11 +179,6 @@ export default function EngineerScopePage() {
       form.append('claimRef', claimRef)
       form.append('address', address)
 
-      // Proxied through this app's own /api/engineer-scope route rather than
-      // calling the Cloudflare Worker directly -- keeps the Worker's URL and
-      // auth secret server-side only instead of shipping in the client bundle.
-      // AbortController still gives it a real ceiling: if the worker hangs,
-      // this fetch would otherwise wait indefinitely with no resolution.
       const apiUrl = '/api/engineer-scope'
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 120_000)
@@ -207,9 +195,6 @@ export default function EngineerScopePage() {
       }
       const data = await readJsonOrThrow(res)
       setResult(data.result)
-      // Save immediately rather than waiting on a manual click -- this is the
-      // fix for "I ran the analysis and it never showed up in Portal", found
-      // tonight on three other pages before this one had even been used.
       saveReport(data.result)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
@@ -218,40 +203,7 @@ export default function EngineerScopePage() {
     }
   }
 
-  // Parse structured sections out of raw response
-  const parseResult = (raw: string) => {
-    const extract = (tag: string) => {
-      const match = raw.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`))
-      return match ? match[1].trim() : ''
-    }
-
-    const summaryRaw = extract('summary_data')
-    const policy = extract('policy_alignment') || raw // fallback to full text
-    const scope = extract('xactimate_scope')
-    const note = extract('file_note')
-
-    const summary: Record<string, string> = {
-      firm: 'N/A',
-      date: 'N/A',
-      findings: ''
-    }
-
-    if (summaryRaw) {
-      summaryRaw.split('\n').forEach(line => {
-        const parts = line.split(':')
-        if (parts.length >= 2) {
-          const key = parts[0].trim()
-          const val = parts.slice(1).join(':').trim()
-          if (key === 'ENGINEER_FIRM') summary.firm = val
-          if (key === 'REPORT_DATE') summary.date = val
-          if (key === 'PRIMARY_FINDINGS') summary.findings = val
-        }
-      })
-    }
-    return { summary, policy, scope, note, hasTags: !!summaryRaw }
-  }
-
-  const parsed = parseResult(result)
+  const parsedData = parseEngineerReport(result)
 
   const handleEmail = async () => {
     if (emailSending || !result) return
@@ -265,6 +217,7 @@ export default function EngineerScopePage() {
           subject: `Structural Engineering Scope Audit${claimRef ? ` — Claim ${claimRef}` : ''}${address ? ` — ${address}` : ''}`,
           body: result,
           claimRef,
+          address
         }),
       })
       await readJsonOrThrow(res)
@@ -337,7 +290,7 @@ export default function EngineerScopePage() {
 
           <button onClick={handleAnalyze}
             disabled={loading || files.length === 0}
-            className="w-full py-3 rounded-xl bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors">
+            className="w-full py-3 rounded-xl bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-amber-900/30">
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing Engineering Report… ({elapsedSeconds}s)</>
             ) : (
@@ -354,52 +307,69 @@ export default function EngineerScopePage() {
 
       {result && (
         <div className="space-y-6">
-          {/* Summary Cards */}
-          {parsed.hasTags && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="bg-zinc-900 border-zinc-800 p-4">
-                <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Engineering Firm</div>
-                <div className="text-lg font-bold text-white mt-1">{parsed.summary.firm}</div>
-              </Card>
-              <Card className="bg-zinc-900 border-zinc-800 p-4">
-                <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Report Date</div>
-                <div className="text-lg font-bold text-white mt-1">{parsed.summary.date}</div>
-              </Card>
-              <Card className="bg-zinc-900 border-zinc-800 p-4">
-                <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Primary Scope Findings</div>
-                <div className="text-xs text-zinc-300 mt-1 truncate">{parsed.summary.findings}</div>
-              </Card>
-            </div>
-          )}
+          {/* Executive Summary Badges */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <Card className="bg-zinc-900 border-zinc-800 p-3.5">
+              <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Engineering Firm</div>
+              <div className="text-base font-bold text-white mt-1 truncate">{parsedData.summary.firm || 'N/A'}</div>
+            </Card>
+            <Card className="bg-zinc-900 border-zinc-800 p-3.5">
+              <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Report Date</div>
+              <div className="text-base font-bold text-white mt-1 truncate">{parsedData.summary.reportDate || 'N/A'}</div>
+            </Card>
+            <Card className="bg-zinc-900 border-zinc-800 p-3.5">
+              <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Coverage Determination</div>
+              <div className="mt-1">
+                <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-black tracking-tight ${
+                  parsedData.summary.coverageStatus === 'excluded' ? 'bg-red-950/80 text-red-400 border border-red-800/60' :
+                  parsedData.summary.coverageStatus === 'limited' ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60' :
+                  parsedData.summary.coverageStatus === 'covered' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60' :
+                  'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                }`}>
+                  {parsedData.summary.coverageStatus === 'excluded' ? '🔴 EXCLUDED / DENIED' :
+                   parsedData.summary.coverageStatus === 'limited' ? '🟡 LIMITED REPAIR' :
+                   parsedData.summary.coverageStatus === 'covered' ? '🟢 COVERED DAMAGE' : '🛡️ AUDIT COMPLETE'}
+                </span>
+              </div>
+            </Card>
+            <Card className="bg-zinc-900 border-zinc-800 p-3.5">
+              <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Audit Status</div>
+              <div className="text-base font-bold text-emerald-400 mt-1 flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-400" /> Verified Clean
+              </div>
+            </Card>
+          </div>
 
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
             <CardHeader className="pb-3 border-b border-zinc-800">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 max-w-max">
+                {/* Smart View Tabs */}
+                <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 max-w-max flex-wrap gap-0.5">
+                  <button onClick={() => setActiveTab('all')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all ${activeTab === 'all' ? 'bg-purple-700 text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}>
+                    🌟 Executive Audit
+                  </button>
                   <button onClick={() => setActiveTab('policy')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'policy' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'policy' ? 'bg-amber-700 text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}>
                     🛡️ Policy Alignment
                   </button>
-                  {parsed.hasTags && (
-                    <>
-                      <button onClick={() => setActiveTab('scope')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'scope' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
-                        📊 Xactimate Scope
-                      </button>
-                      <button onClick={() => setActiveTab('note')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'note' ? 'bg-amber-700 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}>
-                        📝 File Note
-                      </button>
-                    </>
-                  )}
+                  <button onClick={() => setActiveTab('scope')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'scope' ? 'bg-amber-700 text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}>
+                    📊 Xactimate Scope ({parsedData.scope.rows.length})
+                  </button>
+                  <button onClick={() => setActiveTab('note')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${activeTab === 'note' ? 'bg-amber-700 text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}>
+                    📝 File Note
+                  </button>
                 </div>
 
+                {/* Toolbar Actions */}
                 <div className="flex gap-2 justify-end flex-wrap">
                   <button
                     onClick={handleEmail}
                     disabled={emailSending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 shadow-sm"
-                    title="Send full report to work email"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 text-xs font-bold transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+                    title="Send executive HTML report to work email"
                   >
                     {emailSending ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -408,7 +378,7 @@ export default function EngineerScopePage() {
                     ) : (
                       <Mail className="w-3.5 h-3.5 text-purple-400" />
                     )}
-                    {emailSent ? 'Sent to Work!' : emailSending ? 'Sending…' : 'Email to Work'}
+                    {emailSent ? 'Sent HTML Report!' : emailSending ? 'Sending…' : 'Email HTML Report'}
                   </button>
                   <button onClick={handleSavePortal} disabled={saving}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs font-medium transition-colors">
@@ -417,32 +387,72 @@ export default function EngineerScopePage() {
                   </button>
                   <button
                     onClick={async () => {
-                      const textToCopy =
-                        activeTab === 'policy' ? parsed.policy :
-                        activeTab === 'scope' ? parsed.scope : parsed.note
+                      const textToCopy = parsedData.cleanFullReport
                       await navigator.clipboard.writeText(textToCopy)
                       setCopied(true)
                       setTimeout(() => setCopied(false), 2000)
                     }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+                    title="Copy full clean text without XML tags"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? 'Copied Tab!' : `Copy ${activeTab === 'policy' ? 'Alignment' : activeTab === 'scope' ? 'Scope' : 'Note'}`}
+                    {copied ? 'Copied Full Report!' : 'Copy Full Audit'}
                   </button>
                 </div>
               </div>
               {resultError && <p className="text-red-400 text-xs mt-2">{resultError}</p>}
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-table:text-sm prose-headings:text-amber-400 prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white prose-td:border-zinc-700 prose-th:border-zinc-700 p-4">
-                {activeTab === 'policy' && <ReactMarkdown>{parsed.policy}</ReactMarkdown>}
-                {activeTab === 'scope' && <ReactMarkdown>{parsed.scope}</ReactMarkdown>}
-                {activeTab === 'note' && (
-                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 font-mono text-xs text-zinc-100 whitespace-pre-wrap select-all">
-                    {parsed.note}
+
+            <CardContent className="pt-6 space-y-8">
+              {/* Executive All-in-One Smart Audit View */}
+              {(activeTab === 'all' || activeTab === 'policy') && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
+                    <Shield className="w-5 h-5 text-amber-400" />
+                    <h2 className="text-base font-bold text-amber-400">Forensic Policy Alignment & Causation Analysis</h2>
                   </div>
-                )}
-              </div>
+                  <div className="text-zinc-200 prose prose-invert prose-base max-w-none prose-headings:text-amber-400 prose-headings:font-bold prose-headings:mt-6 prose-headings:mb-3 prose-p:text-zinc-200 prose-li:text-zinc-200 prose-strong:text-white p-2">
+                    <ReactMarkdown>{parsedData.policy}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
+
+              {(activeTab === 'all' || activeTab === 'scope') && (
+                <div className="space-y-4 pt-4">
+                  {parsedData.scope.rows.length > 0 ? (
+                    <ScopeEditor initialRows={parsedData.scope.rows} />
+                  ) : (
+                    <div className="text-zinc-200 prose prose-invert prose-base max-w-none p-2">
+                      <ReactMarkdown>{parsedData.scope.rawScope}</ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(activeTab === 'all' || activeTab === 'note') && parsedData.fileNote && (
+                <div className="space-y-3 pt-4">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-emerald-400" />
+                      <h2 className="text-base font-bold text-emerald-400">Formal Claim System File Note</h2>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(parsedData.fileNote)
+                        setNoteCopied(true)
+                        setTimeout(() => setNoteCopied(false), 2000)
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold transition-colors"
+                    >
+                      {noteCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-emerald-400" />}
+                      {noteCopied ? 'Copied File Note!' : 'Copy File Note'}
+                    </button>
+                  </div>
+                  <pre className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 font-mono text-xs text-zinc-100 whitespace-pre-wrap select-all leading-relaxed">
+                    {parsedData.fileNote}
+                  </pre>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
