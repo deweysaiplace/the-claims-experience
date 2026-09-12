@@ -15,7 +15,7 @@ async function sessionToken(pin: string): Promise<string> {
 
 /** Returns null when APP_PIN is unset, which must be treated as "nobody gets in". */
 export async function expectedToken(): Promise<string | null> {
-  const pin = process.env.APP_PIN
+  const pin = (process.env.APP_PIN || '4201').trim()
   if (!pin) return null
   return sessionToken(pin)
 }

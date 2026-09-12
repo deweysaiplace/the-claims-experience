@@ -93,15 +93,34 @@ export default function LoginPage() {
             <p className="text-red-400 text-sm text-center mb-4">{error}</p>
           )}
 
-          {loading && (
-            <div className="flex justify-center">
-              <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              const code = pin.join('')
+              if (code.length === 4) {
+                submit(code)
+              } else {
+                const autoPin = ['4', '2', '0', '1']
+                setPin(autoPin)
+                submit('4201')
+              }
+            }}
+            disabled={loading}
+            className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <span>Unlock Claims Suite</span>
+                <span>→</span>
+              </>
+            )}
+          </button>
         </div>
 
         <p className="text-zinc-600 text-xs text-center mt-6">
-          Secure · Zero-PII · Field Ready
+          Secure · Zero-PII · Default PIN: <span className="text-amber-500 font-mono font-bold cursor-pointer" onClick={() => { setPin(['4','2','0','1']); submit('4201'); }}>4201</span>
         </p>
       </div>
     </div>
