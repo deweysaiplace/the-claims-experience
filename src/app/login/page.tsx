@@ -46,8 +46,7 @@ export default function LoginPage() {
         body: JSON.stringify({ pin: code }),
       })
       if (res.ok) {
-        router.push('/reconciler')
-        router.refresh()
+        window.location.href = '/reconciler'
       } else {
         setError('Incorrect PIN. Enter 4201.')
         setPin(['', '', '', ''])
